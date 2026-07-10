@@ -58,6 +58,48 @@
     });
 
     commandRegistry.register({
+      id: "mcp.manager",
+      title: "Open MCP servers",
+      category: "Agents",
+      handler: () => layoutEngine.openMcpManager(),
+    });
+
+    commandRegistry.register({
+      id: "skills.open",
+      title: "Open skills",
+      category: "Agents",
+      handler: () => layoutEngine.openSkills(),
+    });
+
+    commandRegistry.register({
+      id: "agent.tasks",
+      title: "Open agent tasks",
+      category: "Agents",
+      handler: () => layoutEngine.openAgentTasks(),
+    });
+
+    commandRegistry.register({
+      id: "notes.open",
+      title: "Open notes",
+      category: "Productivity",
+      handler: () => layoutEngine.openNotes(),
+    });
+
+    commandRegistry.register({
+      id: "todo.open",
+      title: "Open todo",
+      category: "Productivity",
+      handler: () => layoutEngine.openTodo(),
+    });
+
+    commandRegistry.register({
+      id: "diff.viewer",
+      title: "Open diff viewer",
+      category: "View",
+      handler: () => layoutEngine.openDiffViewer(),
+    });
+
+    commandRegistry.register({
       id: "view.splitHorizontal",
       title: "Split Editor Right",
       category: "View",

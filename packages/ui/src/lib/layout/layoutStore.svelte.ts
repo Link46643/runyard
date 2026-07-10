@@ -560,6 +560,28 @@ class LayoutStore {
       this.save();
     }
   }
+
+  private openSingletonTab(tabId: string, type: import("@runyard/common").TabType, title: string, props: Record<string, unknown> = {}) {
+    const setFocus = (node: LayoutNode): boolean => {
+      if (node.type === "leaf") {
+        if (node.tabs.some((t) => t.id === tabId)) { node.activeTabId = tabId; return true; }
+      } else if (node.type === "split") {
+        for (const child of node.children) { if (setFocus(child)) return true; }
+      }
+      return false;
+    };
+    if (setFocus(this.layout.root)) { this.save(); return; }
+    const tab: Tab = { id: tabId, type, title, props };
+    const targetLeaf = this.findFirstLeafNotExplorer(this.layout.root) || this.findFirstLeaf(this.layout.root);
+    if (targetLeaf) { targetLeaf.tabs.push(tab); targetLeaf.activeTabId = tab.id; this.save(); }
+  }
+
+  openMcpManager() { this.openSingletonTab("mcp-manager", "mcp-manager", "MCP servers"); }
+  openSkills() { this.openSingletonTab("skills", "skills", "Skills"); }
+  openAgentTasks() { this.openSingletonTab("agent-tasks", "agent-tasks", "Agent tasks"); }
+  openNotes(workspacePath = "../../") { this.openSingletonTab(`notes:${workspacePath}`, "notes", "Notes", { workspacePath }); }
+  openTodo(workspacePath = "../../") { this.openSingletonTab(`todo:${workspacePath}`, "todo", "Todo", { workspacePath }); }
+  openDiffViewer() { this.openSingletonTab("diff-viewer", "diff-viewer", "Diff viewer"); }
 }
 
 export const layoutEngine = new LayoutStore();

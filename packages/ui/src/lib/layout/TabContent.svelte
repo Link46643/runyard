@@ -9,6 +9,12 @@
   import GitPanel from "./GitPanel.svelte";
   import ChatPanel from "./ChatPanel.svelte";
   import AgentManagerPanel from "./AgentManagerPanel.svelte";
+  import McpManagerPanel from "./McpManagerPanel.svelte";
+  import SkillsPanel from "./SkillsPanel.svelte";
+  import AgentTasksPanel from "./AgentTasksPanel.svelte";
+  import NotesPanel from "./NotesPanel.svelte";
+  import TodoPanel from "./TodoPanel.svelte";
+  import DiffViewerPanel from "./DiffViewerPanel.svelte";
 
   let { tab } = $props<{ tab: Tab }>();
 </script>
@@ -32,6 +38,18 @@
   <SettingsPanel />
 {:else if tab.type === "agent-manager"}
   <AgentManagerPanel />
+{:else if tab.type === "mcp-manager"}
+  <McpManagerPanel />
+{:else if tab.type === "skills"}
+  <SkillsPanel />
+{:else if tab.type === "agent-tasks"}
+  <AgentTasksPanel />
+{:else if tab.type === "notes"}
+  <NotesPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
+{:else if tab.type === "todo"}
+  <TodoPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
+{:else if tab.type === "diff-viewer"}
+  <DiffViewerPanel />
 {:else if tab.type === "welcome"}
   <WelcomePanel />
 {:else}

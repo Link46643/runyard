@@ -4,8 +4,10 @@
   import ConversationList from "./chat/ConversationList.svelte";
   import ChatMessageList from "./chat/ChatMessageList.svelte";
   import ChatInput from "./chat/ChatInput.svelte";
+  import ChatInputArea from "./chat/ChatInputArea.svelte";
   import { layoutEngine } from "./layoutStore.svelte.js";
   import { acpStore } from "../stores/acpStore.svelte.js";
+  import { chatInputStore } from "../stores/chatInputStore.svelte.js";
 
   let { tab }: { tab?: { props: Record<string, unknown> } } = $props();
 
@@ -14,6 +16,72 @@
   let branchMenuOpen = $state(false);
   let scrollToMessageId = $state<string | null>(null);
   let agentMenuOpen = $state(false);
+
+  // ── Streaming: bridge ACP chunk events into chatStore messages ──────────────
+  // When chatInputStore.isStreaming becomes true, we push an empty assistant
+  // message into the store so incoming chunks have somewhere to land.
+  // When it becomes false, we stop listening.
+
+  $effect(() => {
+    const streaming = chatInputStore.isStreaming;
+
+    if (!streaming) return;
+
+    // Push an empty assistant message as a placeholder for the incoming stream
+    const convId = chatStore.activeConversationId;
+    if (convId) {
+      const parentId =
+        chatStore.messages.length > 0
+          ? chatStore.messages[chatStore.messages.length - 1].id
+          : null;
+
+      // Insert a streaming placeholder message locally (no DB round-trip yet).
+      // We synthesise a temporary Message object and append it to the list.
+      const tempMsg = {
+        id: `streaming-${Date.now()}`,
+        conversation_id: convId,
+        parent_id: parentId,
+        role: "assistant" as const,
+        content: [{ type: "text" as const, text: "" }],
+        created_at: Date.now(),
+        is_pinned: false,
+      };
+      chatStore.messages = [...chatStore.messages, tempMsg];
+    }
+
+    function onChunk(e: Event) {
+      const detail = (e as CustomEvent).detail as { text?: string } | undefined;
+      const chunk = detail?.text ?? "";
+      if (!chunk) return;
+
+      // Append chunk text to the last assistant message's first TextBlock
+      const msgs = chatStore.messages;
+      if (msgs.length === 0) return;
+      const last = msgs[msgs.length - 1];
+      if (last.role !== "assistant") return;
+
+      const firstBlock = last.content[0];
+      if (!firstBlock || firstBlock.type !== "text") return;
+
+      // Produce a new messages array with the updated text block
+      const updatedBlock = { ...firstBlock, text: firstBlock.text + chunk };
+      const updatedMsg = { ...last, content: [updatedBlock, ...last.content.slice(1)] };
+      chatStore.messages = [...msgs.slice(0, -1), updatedMsg];
+    }
+
+    function onCompleted(_e: Event) {
+      // Streaming done — chatInputStore will set isStreaming = false via its own
+      // listener; nothing extra to do here.
+    }
+
+    window.addEventListener("acp:agent_message_chunk", onChunk);
+    window.addEventListener("acp:prompt_completed", onCompleted);
+
+    return () => {
+      window.removeEventListener("acp:agent_message_chunk", onChunk);
+      window.removeEventListener("acp:prompt_completed", onCompleted);
+    };
+  });
 
   async function newConversation() {
     await chatStore.createConversation("New conversation", "unassigned");
@@ -201,7 +269,7 @@
 
     {#if activeConversation}
       <ChatMessageList messages={chatStore.messages} onOpenFile={openFileFromChat} {scrollToMessageId} />
-      <ChatInput />
+      <ChatInputArea conversationId={activeConversation?.id ?? ""} />
     {:else}
       <div class="empty-panel">
         <p>No conversation open.</p>

@@ -112,6 +112,8 @@ export interface EditorSettings {
   line_wrap: boolean;
   format_on_save: boolean;
   vim_mode: boolean;
+  show_minimap: boolean;
+  show_fold_gutter: boolean;
 }
 
 export interface TerminalSettings {
@@ -151,6 +153,8 @@ export const DEFAULT_SETTINGS: RunyardSettings = {
     line_wrap: false,
     format_on_save: false,
     vim_mode: false,
+    show_minimap: false,
+    show_fold_gutter: true,
   },
   terminal: {
     default_shell: null,

@@ -150,6 +150,38 @@
         </label>
       </div>
 
+      <div class="field toggle">
+        <div>
+          <label>Code Folding</label>
+          <p class="field-desc">Show fold triangles in the gutter and enable fold shortcuts</p>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            checked={settingsStore.settings.editor.show_fold_gutter}
+            onchange={(e) =>
+              set("editor", "show_fold_gutter", (e.target as HTMLInputElement).checked)}
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="field toggle">
+        <div>
+          <label>Minimap</label>
+          <p class="field-desc">Show a scaled document overview on the right side of the editor</p>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            checked={settingsStore.settings.editor.show_minimap}
+            onchange={(e) =>
+              set("editor", "show_minimap", (e.target as HTMLInputElement).checked)}
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+
     {:else if activeSection === "terminal"}
       <h2 class="section-title">Terminal</h2>
 

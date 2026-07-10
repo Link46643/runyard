@@ -10,6 +10,7 @@
   import { layoutEngine } from "./layoutStore.svelte.js";
   import { TriangleAlert } from "lucide-svelte";
   import Modal from "../Modal.svelte";
+  import MiniMap from "./MiniMap.svelte";
 
   let { filePath, onDirtyChange } = $props<{
     filePath: string;
@@ -25,6 +26,13 @@
   let showExternalChangeModal = $state(false);
   let warningMessage = $state("");
 
+  // Cursor position tracking for breadcrumbs.
+  let cursorLine = $state(1);
+  let cursorCol = $state(1);
+
+  // Scroll position (0–1) for minimap indicator.
+  let scrollPercent = $state(0);
+
   // Flag to ignore fs:changed events triggered by our own writes
   let ignoringNextChange = false;
 
@@ -37,6 +45,46 @@
 
   $effect(() => {
     onDirtyChange(isDirty);
+  });
+
+  // Breadcrumb path segments derived from the filePath prop.
+  let breadcrumbSegments = $derived(() => {
+    if (!filePath) return [];
+    const parts = filePath.replace(/^\//, "").split("/");
+    return parts;
+  });
+
+  // ── Settings-driven flags ────────────────────────────────────────────────────
+
+  let showMinimap = $derived(settingsStore.settings.editor?.show_minimap ?? false);
+
+  // Track the settings snapshot used to build the current editor instance so
+  // we can detect when a rebuild is needed.
+  let _lastVimMode = false;
+  let _lastFoldGutter = true;
+  let _lastLineWrap = false;
+  let _lastFontSize = 14;
+  let _lastTabSize = 2;
+
+  // Rebuild the editor when editor-config settings that cannot be toggled via
+  // a simple dispatch change (vim mode, fold gutter, line wrap, font/tab size).
+  $effect(() => {
+    const vimMode = settingsStore.settings.editor?.vim_mode ?? false;
+    const showFoldGutter = settingsStore.settings.editor?.show_fold_gutter ?? true;
+    const lineWrap = settingsStore.settings.editor?.line_wrap ?? false;
+    const fontSize = settingsStore.settings.editor?.font_size ?? 14;
+    const tabSize = settingsStore.settings.editor?.tab_size ?? 2;
+
+    if (
+      editorInstance &&
+      (vimMode !== _lastVimMode ||
+        showFoldGutter !== _lastFoldGutter ||
+        lineWrap !== _lastLineWrap ||
+        fontSize !== _lastFontSize ||
+        tabSize !== _lastTabSize)
+    ) {
+      rebuildEditor(vimMode, showFoldGutter, lineWrap, fontSize, tabSize);
+    }
   });
 
   async function loadFile(silent = false) {
@@ -146,6 +194,69 @@
 
   let _insertCmdHandler: ((e: Event) => void) | null = null;
 
+  // Cached LSP extensions so we can reuse them across rebuilds without
+  // re-initialising the language server.
+  let _cachedLspExtensions: any[] = [];
+
+  /** Tear down the current editor instance and create a fresh one using the
+   *  provided settings. Preserves current document content. */
+  function rebuildEditor(
+    vimMode: boolean,
+    showFoldGutter: boolean,
+    lineWrap: boolean,
+    fontSize: number,
+    tabSize: number
+  ) {
+    const doc = editorInstance ? editorInstance.getValue() : currentContent;
+    editorInstance.destroy();
+    editorInstance = null;
+
+    editorInstance = setupEditor({
+      parent: container,
+      doc,
+      filePath,
+      lspExtensions: _cachedLspExtensions,
+      fontSize,
+      tabSize,
+      lineWrap,
+      vimMode,
+      showFoldGutter,
+      onChange: (content) => {
+        currentContent = content;
+      },
+      onSave: (content) => {
+        saveFile(content);
+      },
+      onSelectionChange: (line, col) => {
+        cursorLine = line;
+        cursorCol = col;
+        appStatus.updateCursor(line, col);
+      },
+    });
+
+    // Attach scroll listener to new view.
+    attachScrollListener();
+
+    _lastVimMode = vimMode;
+    _lastFoldGutter = showFoldGutter;
+    _lastLineWrap = lineWrap;
+    _lastFontSize = fontSize;
+    _lastTabSize = tabSize;
+  }
+
+  /** Attach a DOM scroll listener to the CodeMirror scroller to update
+   *  scrollPercent for the minimap indicator. */
+  function attachScrollListener() {
+    if (!editorInstance) return;
+    const scroller = editorInstance.view.scrollDOM as HTMLElement | null;
+    if (!scroller) return;
+    const onScroll = () => {
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      scrollPercent = max > 0 ? scroller.scrollTop / max : 0;
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+  }
+
   onDestroy(() => {
     if (_blurHandler) window.removeEventListener("blur", _blurHandler);
     if (_saveCmdHandler) document.removeEventListener("runyard:save-current-file", _saveCmdHandler);
@@ -197,10 +308,9 @@
     const langId = detectLanguageId(filePath);
 
     // Build LSP extensions if a language is detected and server is starting/ready
-    let lspExtensions: any[] = [];
     if (language && langId) {
       const lspInterface = createLspInterface(language, lspStore);
-      lspExtensions = createLspExtension({
+      _cachedLspExtensions = createLspExtension({
         lsp: lspInterface,
         fileUri: pathToUri(filePath),
         languageId: langId,
@@ -223,14 +333,22 @@
       }
     }
 
+    const initialVimMode = settingsStore.settings.editor?.vim_mode ?? false;
+    const initialFoldGutter = settingsStore.settings.editor?.show_fold_gutter ?? true;
+    const initialLineWrap = settingsStore.settings.editor?.line_wrap ?? false;
+    const initialFontSize = settingsStore.settings.editor?.font_size ?? 14;
+    const initialTabSize = settingsStore.settings.editor?.tab_size ?? 2;
+
     editorInstance = setupEditor({
       parent: container,
       doc: currentContent,
       filePath,
-      lspExtensions,
-      fontSize: settingsStore.settings.editor.font_size || 14,
-      tabSize: settingsStore.settings.editor.tab_size || 2,
-      lineWrap: settingsStore.settings.editor.line_wrap ?? false,
+      lspExtensions: _cachedLspExtensions,
+      fontSize: initialFontSize,
+      tabSize: initialTabSize,
+      lineWrap: initialLineWrap,
+      vimMode: initialVimMode,
+      showFoldGutter: initialFoldGutter,
       onChange: (content) => {
         currentContent = content;
       },
@@ -238,9 +356,21 @@
         saveFile(content);
       },
       onSelectionChange: (line, col) => {
+        cursorLine = line;
+        cursorCol = col;
         appStatus.updateCursor(line, col);
       },
     });
+
+    // Record the settings used so the $effect rebuild check starts from a
+    // known baseline.
+    _lastVimMode = initialVimMode;
+    _lastFoldGutter = initialFoldGutter;
+    _lastLineWrap = initialLineWrap;
+    _lastFontSize = initialFontSize;
+    _lastTabSize = initialTabSize;
+
+    attachScrollListener();
 
     await loadFile();
     appStatus.updateActiveFile(filePath);
@@ -257,6 +387,15 @@
       }
     });
   });
+
+  // Minimap scroll handler — maps the clicked minimap percentage to a CM scroll.
+  function handleMinimapScroll(pct: number) {
+    if (!editorInstance) return;
+    const scroller = editorInstance.view.scrollDOM as HTMLElement | null;
+    if (!scroller) return;
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = pct * max;
+  }
 </script>
 
 <div class="editor-wrapper">
@@ -291,6 +430,32 @@
     }}
   />
 
+  {#if filePath}
+    <!-- Breadcrumb strip (1.12.6) — shown only when a file is open -->
+    <div class="breadcrumb-bar">
+      <div class="breadcrumb-path">
+        {#each breadcrumbSegments() as seg, i}
+          {#if i > 0}
+            <span class="breadcrumb-sep">/</span>
+          {/if}
+          <button
+            class="breadcrumb-seg"
+            class:breadcrumb-seg--last={i === breadcrumbSegments().length - 1}
+            onclick={() => {
+              if (i < breadcrumbSegments().length - 1) {
+                // Reconstruct the directory path up to this segment and open
+                // the explorer at that location.
+                const dirPath = "/" + breadcrumbSegments().slice(0, i + 1).join("/");
+                layoutEngine.openExplorer?.(dirPath);
+              }
+            }}
+          >{seg}</button>
+        {/each}
+      </div>
+      <div class="breadcrumb-cursor">Ln {cursorLine}, Col {cursorCol}</div>
+    </div>
+  {/if}
+
   {#if loadError}
     <div class="error-overlay">
       <div class="error-icon"><TriangleAlert size={48} strokeWidth={1.5} /></div>
@@ -299,11 +464,21 @@
       <div class="error-path">{filePath}</div>
     </div>
   {/if}
-  <div
-    bind:this={container}
-    class="editor-panel"
-    style:display={loadError ? "none" : "block"}
-  ></div>
+
+  <div class="editor-body" style:display={loadError ? "none" : "flex"}>
+    <div
+      bind:this={container}
+      class="editor-panel"
+    ></div>
+
+    {#if showMinimap}
+      <MiniMap
+        content={currentContent}
+        {scrollPercent}
+        onScrollTo={handleMinimapScroll}
+      />
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -312,10 +487,89 @@
     height: 100%;
     position: relative;
     background-color: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Breadcrumb strip ── */
+  .breadcrumb-bar {
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow: hidden;
+  }
+
+  .breadcrumb-path {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .breadcrumb-sep {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    padding: 0 2px;
+    user-select: none;
+  }
+
+  .breadcrumb-seg {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .breadcrumb-seg:hover {
+    color: var(--text);
+  }
+
+  .breadcrumb-seg--last {
+    color: var(--text);
+    font-weight: 500;
+    cursor: default;
+  }
+
+  .breadcrumb-seg--last:hover {
+    color: var(--text);
+  }
+
+  .breadcrumb-cursor {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* ── Editor body (editor + optional minimap side by side) ── */
+  .editor-body {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    min-height: 0;
   }
 
   .editor-panel {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     height: 100%;
     overflow: hidden;
     background-color: var(--bg);
@@ -332,6 +586,7 @@
     color: var(--text-secondary);
     padding: 20px;
     text-align: center;
+    z-index: 1;
   }
 
   .error-icon {
