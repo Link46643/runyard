@@ -2,6 +2,7 @@
 members = [
     "apps/desktop/src-tauri",
     "crates/runyard-core",
+    "crates/runyard-acp",
     "crates/subservice",
 ]
 resolver = "2"
