@@ -1,0 +1,5120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Runyard Design Guidelines v2</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #ffffff;
+      max-width: 48rem;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.3; }
+    h1 { font-size: 2rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.2em; }
+    h3 { font-size: 1.25rem; }
+    p, ul, ol, blockquote, pre, table { margin-bottom: 1em; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: "SF Mono", "Fira Code", Menlo, monospace;
+      font-size: 0.875em;
+      background: #f1f5f9;
+      padding: 0.15em 0.35em;
+      border-radius: 4px;
+    }
+    pre { background: #f1f5f9; padding: 1em; border-radius: 8px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    blockquote { border-left: 4px solid #e2e8f0; padding: 0.5em 1em; color: #64748b; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5em 0.75em; text-align: left; }
+    th { background: #f8fafc; font-weight: 600; }
+    img { max-width: 100%; height: auto; border-radius: 8px; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 2em 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin-bottom: 0.25em; }
+    @media (prefers-color-scheme: dark) {
+      body { color: #e2e8f0; background: #0f1117; }
+      h1, h2 { border-bottom-color: #1e293b; }
+      code, pre { background: #1e293b; }
+      blockquote { border-left-color: #1e293b; color: #94a3b8; }
+      th, td { border-color: #1e293b; }
+      th { background: #1e293b; }
+      a { color: #60a5fa; }
+      hr { border-top-color: #1e293b; }
+    }
+  </style>
+<style>
+.ha-img-placeholder{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f4f4f5;border:1px dashed #d4d4d8;border-radius:8px;color:#71717a;font-size:12px;font-family:system-ui,sans-serif;min-height:80px;padding:16px;box-sizing:border-box;animation:ha-img-pulse 1.5s ease-in-out infinite}
+.ha-img-placeholder.ha-failed{animation:none;opacity:.7}
+@keyframes ha-img-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@media(prefers-color-scheme:dark){.ha-img-placeholder{background:#27272a;border-color:#3f3f46;color:#a1a1aa}}
+</style>
+</head>
+<body>
+<h1>Runyard Design Guidelines v2</h1>
+<p>A reference for AI agents building the Runyard IDE interface. Detailed. No fluff.</p>
+<hr>
+<h2>1. Philosophy</h2>
+<p>Runyard is a professional IDE first. AI features are transparent, inspectable operations that produce verifiable results. Not bolted-on magic.</p>
+<h3>Core Principles</h3>
+<ol>
+<li><strong>Show the work, not the sparkles.</strong> Agent actions display exact logs, files inspected, tools called, outputs produced. Uncertainty is first-class data.</li>
+<li><strong>Receipts over theater.</strong> The most honest AI interface is an incident timeline: timestamps, actions, evidence, owner, rollback path.</li>
+<li><strong>The tool is the hero.</strong> Editor, terminal, file tree, git panel are primary. AI features exist within these surfaces.</li>
+<li><strong>Silence is signal.</strong> A deterministic tool that works needs no commentary. A file that saves successfully needs no toast.</li>
+<li><strong>Cross-platform consistency.</strong> Desktop, web, mobile share the same visual system. Platform differences handled by the sub-service abstraction.</li>
+</ol>
+<hr>
+<h2>2. Color System (Token-Based)</h2>
+<p>All colors are CSS custom properties. Token names describe the surface, not the value.</p>
+<h3>Base Surfaces</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--bg</code></td>
+<td><code>#000000</code></td>
+<td><code>#ffffff</code></td>
+<td>App background</td>
+</tr>
+<tr>
+<td><code>--bg-secondary</code></td>
+<td><code>#111827</code></td>
+<td><code>#f9fafb</code></td>
+<td>Sidebar, inactive tabs</td>
+</tr>
+<tr>
+<td><code>--bg-tertiary</code></td>
+<td><code>#1e1e1e</code></td>
+<td><code>#f3f4f6</code></td>
+<td>Hover, tooltips</td>
+</tr>
+<tr>
+<td><code>--bg-elevated</code></td>
+<td><code>#1e1e1e</code></td>
+<td><code>#ffffff</code></td>
+<td>Dropdowns, modals</td>
+</tr>
+<tr>
+<td><code>--bg-overlay</code></td>
+<td><code>rgba(0,0,0,0.7)</code></td>
+<td><code>rgba(0,0,0,0.4)</code></td>
+<td>Backdrops</td>
+</tr>
+</tbody></table>
+<h3>Text</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>APCA Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--text</code></td>
+<td><code>#ffffff</code></td>
+<td><code>#111827</code></td>
+<td>Lc 90</td>
+</tr>
+<tr>
+<td><code>--text-secondary</code></td>
+<td><code>#9ca3af</code></td>
+<td><code>#4b5563</code></td>
+<td>Lc 60</td>
+</tr>
+<tr>
+<td><code>--text-tertiary</code></td>
+<td><code>#6b7280</code></td>
+<td><code>#9ca3af</code></td>
+<td>Lc 45</td>
+</tr>
+<tr>
+<td><code>--text-inverse</code></td>
+<td><code>#111827</code></td>
+<td><code>#ffffff</code></td>
+<td>Lc 90</td>
+</tr>
+<tr>
+<td><code>--text-link</code></td>
+<td><code>#60a5fa</code></td>
+<td><code>#2563eb</code></td>
+<td>Lc 70</td>
+</tr>
+<tr>
+<td><code>--text-error</code></td>
+<td><code>#ef4444</code></td>
+<td><code>#dc2626</code></td>
+<td>Lc 70</td>
+</tr>
+<tr>
+<td><code>--text-warning</code></td>
+<td><code>#f59e0b</code></td>
+<td><code>#d97706</code></td>
+<td>Lc 60</td>
+</tr>
+<tr>
+<td><code>--text-success</code></td>
+<td><code>#22c55e</code></td>
+<td><code>#16a34a</code></td>
+<td>Lc 70</td>
+</tr>
+</tbody></table>
+<h3>Borders</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--border</code></td>
+<td><code>#1f2937</code></td>
+<td><code>#e5e7eb</code></td>
+<td>Primary dividers</td>
+</tr>
+<tr>
+<td><code>--border-secondary</code></td>
+<td><code>#374151</code></td>
+<td><code>#d1d5db</code></td>
+<td>Hover borders</td>
+</tr>
+<tr>
+<td><code>--border-active</code></td>
+<td><code>#3b82f6</code></td>
+<td><code>#3b82f6</code></td>
+<td>Focus borders</td>
+</tr>
+<tr>
+<td><code>--border-error</code></td>
+<td><code>#ef4444</code></td>
+<td><code>#dc2626</code></td>
+<td>Error borders</td>
+</tr>
+</tbody></table>
+<h3>Accents (Functional, Never Decorative)</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--accent</code></td>
+<td><code>#3b82f6</code></td>
+<td>Primary actions, selection, active states</td>
+</tr>
+<tr>
+<td><code>--accent-hover</code></td>
+<td><code>#60a5fa</code> (dark) / <code>#2563eb</code> (light)</td>
+<td>Hover</td>
+</tr>
+<tr>
+<td><code>--accent-secondary</code></td>
+<td><code>#8b5cf6</code> (dark) / <code>#7c3aed</code> (light)</td>
+<td>Distinct operations</td>
+</tr>
+<tr>
+<td><code>--accent-danger</code></td>
+<td><code>#ef4444</code> (dark) / <code>#dc2626</code> (light)</td>
+<td>Destructive</td>
+</tr>
+<tr>
+<td><code>--accent-warning</code></td>
+<td><code>#f59e0b</code> (dark) / <code>#d97706</code> (light)</td>
+<td>Warnings</td>
+</tr>
+<tr>
+<td><code>--accent-success</code></td>
+<td><code>#22c55e</code> (dark) / <code>#16a34a</code> (light)</td>
+<td>Success</td>
+</tr>
+</tbody></table>
+<h3>Panel-Specific</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--statusbar-bg</code></td>
+<td><code>#111827</code></td>
+<td><code>#f3f4f6</code></td>
+<td>Status bar background</td>
+</tr>
+<tr>
+<td><code>--statusbar-text</code></td>
+<td><code>#d1d5db</code></td>
+<td><code>#1f2937</code></td>
+<td>Status bar text</td>
+</tr>
+<tr>
+<td><code>--tab-bg</code></td>
+<td><code>#111827</code></td>
+<td><code>#f3f4f6</code></td>
+<td>Inactive tab</td>
+</tr>
+<tr>
+<td><code>--tab-active-bg</code></td>
+<td><code>#1e1e1e</code></td>
+<td><code>#ffffff</code></td>
+<td>Active tab</td>
+</tr>
+<tr>
+<td><code>--tab-text</code></td>
+<td><code>#9ca3af</code></td>
+<td><code>#6b7280</code></td>
+<td>Inactive tab text</td>
+</tr>
+<tr>
+<td><code>--tab-active-text</code></td>
+<td><code>#ffffff</code></td>
+<td><code>#111827</code></td>
+<td>Active tab text</td>
+</tr>
+<tr>
+<td><code>--sidebar-bg</code></td>
+<td><code>#0a0a0a</code></td>
+<td><code>#f9fafb</code></td>
+<td>Sidebar (explorer)</td>
+</tr>
+<tr>
+<td><code>--editor-bg</code></td>
+<td><code>#000000</code></td>
+<td><code>#ffffff</code></td>
+<td>Editor area</td>
+</tr>
+<tr>
+<td><code>--terminal-bg</code></td>
+<td><code>#000000</code></td>
+<td><code>#000000</code></td>
+<td>Terminal (always dark)</td>
+</tr>
+<tr>
+<td><code>--chat-bg</code></td>
+<td><code>#0a0a0a</code></td>
+<td><code>#f9fafb</code></td>
+<td>Chat panel</td>
+</tr>
+<tr>
+<td><code>--chat-message-bg-user</code></td>
+<td><code>#1e3a5f</code></td>
+<td><code>#dbeafe</code></td>
+<td>User message</td>
+</tr>
+<tr>
+<td><code>--chat-message-bg-agent</code></td>
+<td><code>#111827</code></td>
+<td><code>#f3f4f6</code></td>
+<td>Agent message</td>
+</tr>
+</tbody></table>
+<h3>Contrast Requirements (APCA, Not WCAG Luminance)</h3>
+<ul>
+<li>Body text: Lc 90 minimum</li>
+<li>Secondary text: Lc 60 minimum</li>
+<li>Tertiary/disabled: Lc 45 minimum</li>
+<li>Border text: Lc 30 minimum (structural only, never readable)</li>
+<li>Focus indicators: Lc 75 minimum with 2px outline</li>
+</ul>
+<p>Never use saturated colors for text (red on black, bright green on white). APCA accounts for spatial frequency and polarity; traditional WCAG luminance math does not.</p>
+<h3>Banned Colors (Permanently)</h3>
+<ul>
+<li>Gradient backgrounds on any UI surface</li>
+<li>Gradient text or gradient borders</li>
+<li>Blue-to-purple neon glows (<code>#3B82F6</code> to <code>#6366F1</code>)</li>
+<li>Backdrop blur / frosted glass (<code>backdrop-filter: blur</code>)</li>
+<li>Box-shadow glows simulating neon or magical light</li>
+<li>Opacity-based dimming as primary state indicator (use explicit tokens)</li>
+<li>Pure white cards on gray-50 backgrounds</li>
+<li>High-saturation accent colors for backgrounds (use muted, desaturated variants)</li>
+</ul>
+<hr>
+<h2>3. Typography</h2>
+<h3>Stack</h3>
+<pre><code class="language-css">--font-mono: &quot;JetBrains Mono&quot;, &quot;SF Mono&quot;, &quot;Fira Code&quot;, &quot;Cascadia Code&quot;, ui-monospace, monospace;
+--font-sans: &quot;Google Sans Flex&quot;, &quot;Inter&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, sans-serif;
+--font-display: &quot;Google Sans Flex&quot;, &quot;Inter&quot;, sans-serif;
+</code></pre>
+<p>All UI text uses sans. Code, file paths, terminal output, and inline code use mono. Never mix fonts in a single sentence.</p>
+<h3>Size Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Size</th>
+<th>Line Height</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--text-xs</code></td>
+<td>11px</td>
+<td>16px</td>
+<td>Status bar, badges, metadata, tooltips</td>
+</tr>
+<tr>
+<td><code>--text-sm</code></td>
+<td>12px</td>
+<td>18px</td>
+<td>Labels, captions, timestamps, sidebar headers</td>
+</tr>
+<tr>
+<td><code>--text-base</code></td>
+<td>13px</td>
+<td>20px</td>
+<td>Default UI text, menu items, buttons</td>
+</tr>
+<tr>
+<td><code>--text-md</code></td>
+<td>14px</td>
+<td>22px</td>
+<td>Body text, settings descriptions, chat messages</td>
+</tr>
+<tr>
+<td><code>--text-lg</code></td>
+<td>16px</td>
+<td>24px</td>
+<td>Section headers, panel titles</td>
+</tr>
+<tr>
+<td><code>--text-xl</code></td>
+<td>20px</td>
+<td>28px</td>
+<td>Modal titles, major section headers</td>
+</tr>
+<tr>
+<td><code>--text-2xl</code></td>
+<td>24px</td>
+<td>32px</td>
+<td>Empty state titles, welcome screen</td>
+</tr>
+<tr>
+<td><code>--text-3xl</code></td>
+<td>32px</td>
+<td>40px</td>
+<td>Brand display only (welcome screen title)</td>
+</tr>
+</tbody></table>
+<h3>Weight Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Weight</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>400</td>
+<td>Body text, descriptions, chat messages</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Labels, button text, menu items</td>
+</tr>
+<tr>
+<td>600</td>
+<td>Section headers, panel titles, active tab text</td>
+</tr>
+<tr>
+<td>700</td>
+<td>Status bar labels, Explorer panel header, critical badges</td>
+</tr>
+<tr>
+<td>800</td>
+<td>Never used</td>
+</tr>
+</tbody></table>
+<h3>Letter Spacing</h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Tracking</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Uppercase labels (status bar, panel headers)</td>
+<td>0.05em</td>
+</tr>
+<tr>
+<td>Code/terminal</td>
+<td>0 (monospace handles spacing)</td>
+</tr>
+<tr>
+<td>Body text</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Tab titles</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Small badges</td>
+<td>0.02em</td>
+</tr>
+</tbody></table>
+<h3>Text Formatting Rules</h3>
+<ul>
+<li><strong>Never use em dashes.</strong> Use en dashes for ranges (e.g., 1-10), hyphens for compound words, or periods for independent clauses.</li>
+<li><strong>Never use emojis in UI text.</strong> Use lucide-svelte icons. Text is for reading, not decoration.</li>
+<li><strong>Never use exclamation marks.</strong> Errors are statements. Warnings are statements. Success is silent.</li>
+<li><strong>Never use conversational filler.</strong> &quot;I would be happy to help you with that code today!&quot; is unacceptable. &quot;File saved.&quot; is acceptable. &quot;3 tests passed.&quot; is ideal.</li>
+<li><strong>Never use title case for UI labels.</strong> Use sentence case: &quot;Open file&quot;, not &quot;Open File&quot;. &quot;New terminal&quot;, not &quot;New Terminal&quot;.</li>
+<li><strong>Capitalize proper nouns only.</strong> &quot;Git status&quot;, not &quot;Git Status&quot;. &quot;Settings panel&quot;, not &quot;Settings Panel&quot;.</li>
+</ul>
+<hr>
+<h2>4. Layout and Spacing</h2>
+<h3>Spacing Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--space-1</code></td>
+<td>2px</td>
+<td>Inline gaps, icon-text spacing</td>
+</tr>
+<tr>
+<td><code>--space-2</code></td>
+<td>4px</td>
+<td>Tight group padding</td>
+</tr>
+<tr>
+<td><code>--space-3</code></td>
+<td>8px</td>
+<td>Button padding, list item gaps</td>
+</tr>
+<tr>
+<td><code>--space-4</code></td>
+<td>12px</td>
+<td>Panel padding, card padding</td>
+</tr>
+<tr>
+<td><code>--space-5</code></td>
+<td>16px</td>
+<td>Section padding, modal padding</td>
+</tr>
+<tr>
+<td><code>--space-6</code></td>
+<td>24px</td>
+<td>Major section separation</td>
+</tr>
+<tr>
+<td><code>--space-7</code></td>
+<td>32px</td>
+<td>Panel-to-panel gaps</td>
+</tr>
+<tr>
+<td><code>--space-8</code></td>
+<td>48px</td>
+<td>Large structural gaps</td>
+</tr>
+<tr>
+<td><code>--space-9</code></td>
+<td>64px</td>
+<td>Page-level separation</td>
+</tr>
+</tbody></table>
+<h3>Border Radius Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--radius-0</code></td>
+<td>0px</td>
+<td>Editor panels, terminal, code blocks, tables, data grids</td>
+</tr>
+<tr>
+<td><code>--radius-1</code></td>
+<td>2px</td>
+<td>Buttons, input fields, badges, small tags</td>
+</tr>
+<tr>
+<td><code>--radius-2</code></td>
+<td>4px</td>
+<td>Cards, dropdowns, menus, tooltips</td>
+</tr>
+<tr>
+<td><code>--radius-3</code></td>
+<td>6px</td>
+<td>Modals, floating panels</td>
+</tr>
+<tr>
+<td><code>--radius-4</code></td>
+<td>8px</td>
+<td>Large modals, welcome panels</td>
+</tr>
+<tr>
+<td><code>--radius-full</code></td>
+<td>9999px</td>
+<td>Circular avatars, status dots only</td>
+</tr>
+</tbody></table>
+<p><strong>Rule:</strong> Any element containing code, data, or structured content gets 0px radius. Only decorative or lightweight UI elements (buttons, badges, user avatars) may use rounded corners.</p>
+<h3>Shadow Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--shadow-none</code></td>
+<td>none</td>
+<td>Default state for all elements</td>
+</tr>
+<tr>
+<td><code>--shadow-1</code></td>
+<td><code>0 1px 2px rgba(0,0,0,0.3)</code></td>
+<td>Subtle elevation, dropdown menus</td>
+</tr>
+<tr>
+<td><code>--shadow-2</code></td>
+<td><code>0 4px 8px rgba(0,0,0,0.4)</code></td>
+<td>Modals, floating panels, toast notifications</td>
+</tr>
+<tr>
+<td><code>--shadow-3</code></td>
+<td><code>0 8px 16px rgba(0,0,0,0.5)</code></td>
+<td>Full-screen overlays, command palette</td>
+</tr>
+</tbody></table>
+<p><strong>Rule:</strong> No colored or glow shadows. Shadows exist only for functional elevation, never for atmosphere.</p>
+<h3>Layout Architecture</h3>
+<pre><code>+------------------------------------------+
+|  [Sidebar] | [Editor/Panel Area]         |
+|  20%       |  80%                        |
+|            |                             |
+|            |  [Tab Bar]                  |
+|            |  [Active Panel Content]     |
+|            |                             |
++------------------------------------------+
+|  [Status Bar - 24px height]               |
++------------------------------------------+
+</code></pre>
+<ul>
+<li>Sidebar: Explorer panel, file tree. Always 20% of width. Resizable between 180px and 400px.</li>
+<li>Editor area: Tab bar + active panel content. The active panel is a first-class tab, never a sidebar widget.</li>
+<li>Status bar: 24px height, fixed at bottom.</li>
+<li>Command palette: Full-screen overlay, centered, max-width 640px, shadow-3.</li>
+</ul>
+<hr>
+<h2>5. Component Patterns</h2>
+<h3>5.1 Buttons</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Background</th>
+<th>Border</th>
+<th>Text</th>
+<th>Padding</th>
+<th>Radius</th>
+<th>Hover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Primary</td>
+<td><code>var(--accent)</code></td>
+<td>none</td>
+<td><code>var(--text-inverse)</code></td>
+<td>6px 12px</td>
+<td>2px</td>
+<td><code>var(--accent-hover)</code></td>
+</tr>
+<tr>
+<td>Secondary</td>
+<td>transparent</td>
+<td>1px solid <code>var(--border)</code></td>
+<td><code>var(--text)</code></td>
+<td>6px 12px</td>
+<td>2px</td>
+<td><code>var(--bg-tertiary)</code>, <code>var(--border-secondary)</code></td>
+</tr>
+<tr>
+<td>Danger</td>
+<td><code>var(--accent-danger)</code></td>
+<td>none</td>
+<td><code>var(--text-inverse)</code></td>
+<td>6px 12px</td>
+<td>2px</td>
+<td><code>#dc2626</code> (dark), <code>#b91c1c</code> (light)</td>
+</tr>
+<tr>
+<td>Ghost</td>
+<td>transparent</td>
+<td>none</td>
+<td><code>var(--text-secondary)</code></td>
+<td>4px 8px</td>
+<td>2px</td>
+<td><code>var(--bg-tertiary)</code>, <code>var(--text)</code></td>
+</tr>
+</tbody></table>
+<p><strong>Button Rules:</strong></p>
+<ul>
+<li>Never use gradient backgrounds, rounded buttons (radius &gt; 4px) for primary actions, shadow as state indicator, or spinner inside buttons.</li>
+<li>Maximum 3 words, sentence case, no punctuation.</li>
+</ul>
+<h3>5.2 Input Fields</h3>
+<pre><code>Background: var(--bg-tertiary)
+Border: 1px solid var(--border)
+Text: var(--text)
+Padding: 8px 12px
+Border-radius: 2px
+Font: 13px, --font-sans
+Placeholder: var(--text-tertiary)
+Focus: border var(--border-active), 2px outline offset 2px
+Error: border var(--border-error), subtle red background tint
+Disabled: opacity 0.5, background var(--bg-secondary)
+</code></pre>
+<p><strong>Input Rules:</strong></p>
+<ul>
+<li>Labels sit above the input (12px, weight 500, <code>var(--text-secondary)</code>). No floating labels. No animated underline indicators. No placeholder as label replacement.</li>
+<li>Multi-line inputs (chat, notes) use min-height 48px and auto-resize.</li>
+</ul>
+<h3>5.3 Tabs</h3>
+<pre><code>Tab bar height: 36px
+Tab height: 36px
+Tab padding: 8px 16px
+Tab background (inactive): var(--tab-bg)
+Tab background (active): var(--tab-active-bg)
+Tab text (inactive): var(--tab-text)
+Tab text (active): var(--tab-active-text)
+Tab border-bottom (active): 2px solid var(--accent)
+Tab border-right: 1px solid var(--border)
+Font: 13px, weight 500, --font-sans
+Close button: 14px icon, opacity 0.6, hover opacity 1.0
+</code></pre>
+<p><strong>Tab Rules:</strong></p>
+<ul>
+<li>Dirty tabs show a 6px dot in <code>var(--accent)</code>, not asterisks or text changes.</li>
+<li>Tab titles truncate with ellipsis at 200px max width.</li>
+<li>Never use vertical text rotation. Never use icon-only tabs without tooltips.</li>
+<li>Terminal tabs update title dynamically from xterm.js OSC sequences. No emojis in terminal titles.</li>
+</ul>
+<h3>5.4 Panels and Cards</h3>
+<pre><code>Panel background: var(--bg-secondary)
+Panel border: 1px solid var(--border) (right and bottom only)
+Panel padding: 12px (space-4)
+Border-radius: 0px (radius-0)
+</code></pre>
+<p><strong>Panel Rules:</strong></p>
+<ul>
+<li>No border-radius on panels containing code, data, or file trees.</li>
+<li>No shadow on panels (panels are structural, not floating).</li>
+<li>Panel headers: 11px, uppercase, weight 700, letter-spacing 0.05em, <code>var(--text-secondary)</code>.</li>
+<li>The Explorer panel header is &quot;EXPLORER&quot;, not &quot;Explorer&quot; or &quot;File Explorer&quot;.</li>
+<li>The Git panel header is &quot;SOURCE CONTROL&quot;, not &quot;Git&quot; or &quot;Git Panel&quot;.</li>
+<li>The Terminal panel header is &quot;TERMINAL&quot;, not &quot;Terminal&quot; or &quot;Console&quot;.</li>
+<li>The Chat panel header is &quot;AI CHAT&quot;, not &quot;Chat&quot; or &quot;Copilot&quot;.</li>
+</ul>
+<h3>5.5 Modals and Dialogs</h3>
+<pre><code>Backdrop: var(--bg-overlay)
+Modal background: var(--bg-elevated)
+Modal border: 1px solid var(--border)
+Modal border-radius: 6px (radius-3)
+Modal shadow: var(--shadow-2)
+Modal padding: 24px (space-6)
+Modal max-width: 560px (480px for confirmations, 720px for forms)
+</code></pre>
+<p><strong>Modal Rules:</strong></p>
+<ul>
+<li>Always have a title (16px, weight 600), never just body text.</li>
+<li>Modal actions align right, primary action on the rightmost side.</li>
+<li>Never use modal stacking. Close one before opening another.</li>
+<li>Never use &quot;Are you sure?&quot; language. State the consequence: &quot;This will discard 3 unsaved changes.&quot; / &quot;This will delete the file permanently.&quot;</li>
+</ul>
+<h3>5.6 Tooltips</h3>
+<pre><code>Background: var(--bg-elevated)
+Border: 1px solid var(--border)
+Text: var(--text-secondary)
+Padding: 4px 8px
+Border-radius: 4px (radius-2)
+Font: 12px, --font-sans
+Max-width: 280px
+Shadow: var(--shadow-1)
+Delay: 300ms (never instant, never longer than 500ms)
+</code></pre>
+<p><strong>Tooltip Rules:</strong></p>
+<ul>
+<li>Never contain interactive elements or more than 2 lines of text.</li>
+<li>Never use as a replacement for visible labels.</li>
+</ul>
+<h3>5.7 Badges and Tags</h3>
+<pre><code>Badge background: var(--bg-tertiary)
+Badge text: var(--text-secondary)
+Badge padding: 2px 6px
+Badge border-radius: 2px (radius-1)
+Badge font: 11px, weight 500, --font-sans
+</code></pre>
+<p><strong>Badge Rules:</strong></p>
+<ul>
+<li>Status badges (error, warning, success) use accent colors with 10% opacity background.</li>
+<li>Never use gradient, shadow, or animated badges.</li>
+</ul>
+<hr>
+<h2>6. The Chat Panel: Specific Rules</h2>
+<p>The chat panel is the area most vulnerable to AI interface tropes. It must be treated as a first-class tab, equal to the editor and terminal.</p>
+<h3>6.1 Message Display</h3>
+<p><strong>Never use chat bubbles.</strong> Use a flat message stream:</p>
+<pre><code>Message container: full width, no max-width, no border-radius
+Message padding: 16px vertical, 0 horizontal (edge-to-edge within panel)
+Message separator: 1px solid var(--border)
+Message background: none (alternating subtle var(--bg-secondary))
+User message: left accent bar 2px solid var(--accent)
+Agent message: no accent bar
+</code></pre>
+<p><strong>Never use avatars or profile pictures.</strong> Messages are identified by a small, 11px label above the content: &quot;You&quot; or &quot;Claude&quot; or &quot;Agent: code-review&quot;. No circular user icons, no robot icons, no initials in colored circles.</p>
+<h3>6.2 Code Blocks in Messages</h3>
+<p>Code blocks in chat use the same rendering as the editor:</p>
+<pre><code>Container: var(--editor-bg), 1px solid var(--border), 0px radius
+Header: 11px, var(--text-secondary), background var(--bg-secondary), padding 4px 8px
+Header content: language icon (lucide), filename, copy button, insert button, diff button
+Code: JetBrains Mono, 13px, syntax highlighted
+Max-height: 400px with scroll, never collapsed by default
+</code></pre>
+<p><strong>Code Block Rules:</strong></p>
+<ul>
+<li>Always show full filename, never truncated.</li>
+<li>The copy button is a small icon (14px) in the header, not a floating overlay.</li>
+<li>&quot;Insert at cursor&quot; or &quot;Replace selection&quot;, not &quot;Apply&quot; or &quot;Use&quot;.</li>
+<li>&quot;Show diff&quot;, not &quot;Review changes&quot;.</li>
+<li>Never use &quot;Copy to clipboard&quot; toast confirmations. The button briefly shows a checkmark icon for 800ms, then returns to copy icon.</li>
+</ul>
+<h3>6.3 Diff Cards in Chat</h3>
+<p>When the agent proposes file changes, display them as inline diff cards:</p>
+<pre><code>Diff card: full width, 1px solid var(--border), 0px radius
+Header: filename, path, status badge (&quot;modified&quot;, &quot;created&quot;, &quot;deleted&quot;)
+Diff content: side-by-side or unified view, syntax highlighted
+Hunk actions: &quot;Accept hunk&quot; / &quot;Reject hunk&quot; per hunk, ghost buttons
+Card actions: &quot;Accept all&quot; / &quot;Reject all&quot; at top, secondary buttons
+</code></pre>
+<p><strong>Diff Card Rules:</strong></p>
+<ul>
+<li>Always show the full file path, never just the filename.</li>
+<li>Green additions: background <code>#1e3a2f</code> (dark) / <code>#dcfce7</code> (light). Never pure green text on transparent.</li>
+<li>Red deletions: background <code>#3f1e2f</code> (dark) / <code>#fee2e2</code> (light). Never pure red text on transparent.</li>
+<li>Hunk headers (<code>@@ -1,5 +1,7 @@</code>) use 11px, <code>var(--text-tertiary)</code>, background <code>var(--bg-tertiary)</code>.</li>
+</ul>
+<h3>6.4 Tool Calls in Chat</h3>
+<p>When the agent invokes a tool, show a collapsible operation card:</p>
+<pre><code>Tool card: full width, 1px solid var(--border), 0px radius
+Header: tool icon (lucide), tool name, arguments summary, expand/collapse toggle
+Collapsed state: one line, 11px, var(--text-tertiary)
+Expanded state: full JSON output, syntax highlighted, 12px mono
+Status: running (yellow dot), completed (green dot), failed (red dot)
+</code></pre>
+<p><strong>Tool Card Rules:</strong></p>
+<ul>
+<li>Tool name displayed as plain text. No sparkles or magic indicators.</li>
+<li>Running state: small yellow dot (6px, not a spinner), not animated pulse or glow.</li>
+<li>Completed state: green dot. No checkmark animation. No success message.</li>
+<li>Failed state: red dot and the error message in full. No &quot;Oops!&quot; or &quot;Something went wrong.&quot; Just the error.</li>
+</ul>
+<h3>6.5 Thinking Blocks in Chat</h3>
+<p>When the model is in &quot;thinking&quot; or &quot;extended thinking&quot; mode, show a minimal state indicator:</p>
+<pre><code>Thinking indicator: 11px, var(--text-tertiary), &quot;Thinking...&quot; with a static ellipsis
+Thinking content: collapsed by default, expandable to show raw reasoning tokens
+Token count: shown in header when expanded, &quot;~1,247 reasoning tokens&quot;
+</code></pre>
+<p><strong>Thinking Block Rules:</strong></p>
+<ul>
+<li>Never use animated dots. The ellipsis is static text.</li>
+<li>Never use a &quot;thinking&quot; animation, glow, or shimmer.</li>
+<li>Never show thinking content expanded by default. It is collapsed and can be expanded if the user is debugging.</li>
+<li>The token count is factual data, not a performance brag.</li>
+</ul>
+<h3>6.6 Permission Requests in Chat</h3>
+<p>When the agent requests permission (HIL - Human-in-the-Loop), show an inline decision card:</p>
+<pre><code>Permission card: 1px solid var(--accent-warning), 0px radius, subtle amber background tint
+Header: &quot;Permission required&quot; + operation description
+Body: exact tool name, exact arguments, affected files list
+Actions: &quot;Approve&quot; (primary), &quot;Deny&quot; (secondary), &quot;Approve for session&quot; (ghost)
+</code></pre>
+<p><strong>Permission Card Rules:</strong></p>
+<ul>
+<li>Operation description is a dry statement: &quot;Execute shell command: <code>rm -rf node_modules</code>&quot;, not &quot;I&#39;d like to clean up your dependencies for you!&quot;</li>
+<li>Affected files list is a bulleted list of absolute paths, not a summary.</li>
+<li>&quot;Approve for session&quot; remembers the approval for this tool + these exact arguments within the current conversation. It is a checkbox, not a default.</li>
+<li>Never use amber/gold glow or border animation. The border is a static 1px line.</li>
+</ul>
+<h3>6.7 Streaming Text in Chat</h3>
+<p>Text streams character by character from the agent:</p>
+<pre><code>Stream state: text appears in real-time, no typing animation
+Cursor: none (the text simply appears, no blinking cursor follows the stream)
+Stop button: visible during streaming, ghost button &quot;Stop generation&quot;, positioned at the bottom of the message
+Regenerate button: visible after completion, ghost button &quot;Regenerate&quot;, replaces the stop button
+</code></pre>
+<p><strong>Streaming Rules:</strong></p>
+<ul>
+<li>Never use a typing animation or a blinking cursor that follows the stream.</li>
+<li>Never use a &quot;typing&quot; indicator with animated dots.</li>
+<li>The stop button is functional and interrupts the generation immediately.</li>
+<li>The regenerate button starts a new generation from the same user message (replaces the previous agent response).</li>
+</ul>
+<h3>6.8 Context Summary in Chat</h3>
+<p>When old messages are compressed to save context window, show a divider:</p>
+<pre><code>Context summary: dashed horizontal line, 1px, var(--border)
+Label: &quot;12 messages summarized&quot; + expand toggle
+Expanded: shows the summary text in 12px, var(--text-tertiary), with &quot;View original&quot; link to restore
+</code></pre>
+<p><strong>Context Summary Rules:</strong></p>
+<ul>
+<li>The divider is a static dashed line, not an animated or glowing element.</li>
+<li>The summary is factual, not conversational. &quot;12 messages summarized.&quot; Not &quot;Let me bring you up to speed...&quot;</li>
+<li>The original messages are accessible but not expanded by default.</li>
+</ul>
+<hr>
+<h2>7. Status and Feedback</h2>
+<h3>7.1 Loading States</h3>
+<pre><code>Skeleton: block-shaped placeholder using var(--bg-tertiary), no animation, no shimmer, no gradient
+Skeleton pulse: subtle opacity 0.6 -&gt; 0.8, 1.5s ease, infinite (only for initial load, never for subsequent updates)
+Progress bar: 2px height, var(--accent), 0px radius, at top of panel
+Spinner: 16px, 1px stroke, var(--text-tertiary), no color animation, no gradient stroke
+</code></pre>
+<p><strong>Loading Rules:</strong></p>
+<ul>
+<li>Never use skeleton screens with animated shimmer gradients.</li>
+<li>Never use &quot;spinner with gradient stroke&quot; (the blue-to-purple spinning arc).</li>
+<li>Never use &quot;loading&quot; text with animated dots.</li>
+<li>The terminal panel shows &quot;Starting terminal...&quot; as static text during initialization, then removes it when ready.</li>
+<li>The editor panel shows a 2px progress bar at the top during file load, then removes it.</li>
+</ul>
+<h3>7.2 Error States</h3>
+<pre><code>Error banner: full width, 1px solid var(--border-error), background var(--accent-danger) at 5% opacity
+Error text: var(--text-error), 13px, --font-sans
+Error icon: lucide alert-triangle, 14px, var(--text-error), not animated
+Error actions: &quot;Retry&quot; (ghost), &quot;Dismiss&quot; (ghost)
+</code></pre>
+<p><strong>Error Rules:</strong></p>
+<ul>
+<li>Error messages are statements, not apologies. &quot;Connection failed.&quot; not &quot;Oops! We couldn&#39;t connect.&quot;</li>
+<li>Error messages include the exact error code or exception: &quot;Connection failed: ECONNREFUSED localhost:7820.&quot; not &quot;Something went wrong.&quot;</li>
+<li>Never use red exclamation icons. Never use red pulsing borders. Never use red glow.</li>
+<li>Never use &quot;Try again later&quot; as the only action. Always provide a retry or a diagnostic step.</li>
+</ul>
+<h3>7.3 Success States</h3>
+<p>Success is silent. A file that saves successfully produces no notification, no toast, no checkmark animation. The only indication is the dirty dot disappearing from the tab.</p>
+<p>When success absolutely must be communicated (e.g., a git commit that changed remote state), use:</p>
+<pre><code>Success indicator: 11px, var(--text-success), static text
+&quot;Committed: 3 files changed, 2 insertions(+), 1 deletion(-)&quot;
+Duration: 5 seconds, then fade to nothing. No manual dismiss needed.
+</code></pre>
+<p><strong>Success Rules:</strong></p>
+<ul>
+<li>Never use green checkmark animations. Never use &quot;Success!&quot; messages. Never use confetti or celebratory language.</li>
+<li>Git operations show a one-line summary in the status bar, not a toast.</li>
+</ul>
+<h3>7.4 Status Bar</h3>
+<pre><code>Height: 24px, fixed
+Background: var(--statusbar-bg)
+Text: var(--statusbar-text), 11px, --font-sans
+Padding: 0 8px
+Sections: left (connection, git branch, file path, LSP badges), right (cursor position, encoding, language)
+</code></pre>
+<p><strong>Status Bar Rules:</strong></p>
+<ul>
+<li>Connection status is text only: &quot;Local&quot;, &quot;Connected: dev-server&quot;, &quot;Connecting...&quot;, &quot;Disconnected&quot;. Never use colored dots as the sole indicator.</li>
+<li>Git branch is plain text, preceded by the branch icon (lucide). No color, no animation.</li>
+<li>LSP badges show language abbreviation (e.g., &quot;TS&quot;) with a small colored dot: green (ready), yellow (starting), red (error). The dot is 6px, static, not pulsing.</li>
+<li>The file path truncates from the left with ellipsis after 50 characters: &quot;...src/components/EditorPanel.svelte&quot;.</li>
+<li>Cursor position is &quot;line:col&quot; format, e.g., &quot;42:15&quot;. No &quot;Ln 42, Col 15&quot; verbose format.</li>
+<li>Never use the status bar for notifications, toasts, or temporary messages.</li>
+</ul>
+<hr>
+<h2>8. Animation and Motion</h2>
+<h3>8.1 Principles</h3>
+<ol>
+<li><strong>Motion is functional, not decorative.</strong> Every animation must communicate state change, spatial relationship, or feedback. If removing the animation does not reduce comprehension, remove the animation.</li>
+<li><strong>Fast is default.</strong> Most transitions are 100ms. Complex layout changes (split pane resize, sidebar collapse) are 200ms. Nothing exceeds 300ms except modal fade-in (150ms) and modal fade-out (100ms).</li>
+<li><strong>No bouncy or elastic easing.</strong> Use <code>ease-out</code> for appearing, <code>ease-in</code> for disappearing, <code>ease-in-out</code> for resizing. Never use <code>spring</code>, <code>bounce</code>, or <code>elastic</code> easing.</li>
+</ol>
+<h3>8.2 Allowed Animations</h3>
+<table>
+<thead>
+<tr>
+<th>Animation</th>
+<th>Duration</th>
+<th>Easing</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tab switch</td>
+<td>0ms</td>
+<td>none</td>
+<td>Instant</td>
+</tr>
+<tr>
+<td>Panel resize (drag)</td>
+<td>0ms</td>
+<td>none</td>
+<td>Follows pointer</td>
+</tr>
+<tr>
+<td>Panel collapse/expand</td>
+<td>200ms</td>
+<td>ease-in-out</td>
+<td>Layout change</td>
+</tr>
+<tr>
+<td>Modal fade-in</td>
+<td>150ms</td>
+<td>ease-out</td>
+<td>Overlay appearance</td>
+</tr>
+<tr>
+<td>Modal fade-out</td>
+<td>100ms</td>
+<td>ease-in</td>
+<td>Overlay disappearance</td>
+</tr>
+<tr>
+<td>Dropdown menu</td>
+<td>100ms</td>
+<td>ease-out</td>
+<td>Menu appearance</td>
+</tr>
+<tr>
+<td>Button hover background</td>
+<td>100ms</td>
+<td>ease</td>
+<td>Color transition</td>
+</tr>
+<tr>
+<td>Button active press</td>
+<td>100ms</td>
+<td>ease</td>
+<td>scale(0.98)</td>
+</tr>
+<tr>
+<td>Skeleton opacity</td>
+<td>1500ms</td>
+<td>ease</td>
+<td>Loading state (only initial)</td>
+</tr>
+<tr>
+<td>Progress bar fill</td>
+<td>200ms</td>
+<td>ease-out</td>
+<td>Progress indication</td>
+</tr>
+<tr>
+<td>Toast slide-in</td>
+<td>200ms</td>
+<td>ease-out</td>
+<td>Notification (rare)</td>
+</tr>
+<tr>
+<td>Toast fade-out</td>
+<td>200ms</td>
+<td>ease-in</td>
+<td>Notification removal</td>
+</tr>
+</tbody></table>
+<h3>8.3 Forbidden Animations</h3>
+<ul>
+<li>Gradient animations (animated gradient backgrounds, gradient text shifts)</li>
+<li>Glow or pulse animations (pulsing borders, pulsing dots, glowing shadows)</li>
+<li>Shimmer or skeleton wave effects</li>
+<li>Bounce or spring physics (elastic resizing, bouncing modals, springy panels)</li>
+<li>Parallax scrolling or depth effects</li>
+<li>3D transforms (perspective, rotateX, rotateY)</li>
+<li>Blur transitions (fading between blurred and sharp states)</li>
+<li>Particle effects, confetti, or celebratory animations</li>
+<li>Typing animations (text that appears character-by-character with a cursor)</li>
+<li>Animated progress spinners with gradient strokes</li>
+<li>Morphing shapes or path animations (SVG morphing)</li>
+</ul>
+<hr>
+<h2>9. Icons and Iconography</h2>
+<p>Runyard uses <code>lucide-svelte</code> as the sole icon library. All icons are monochrome, 16px default, 1.5px stroke, rounded caps and joins.</p>
+<h3>Icon Size Scale</h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Size</th>
+<th>Stroke</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Toolbar buttons</td>
+<td>16px</td>
+<td>1.5px</td>
+</tr>
+<tr>
+<td>Tab close buttons</td>
+<td>14px</td>
+<td>2px</td>
+</tr>
+<tr>
+<td>Status bar badges</td>
+<td>12px</td>
+<td>2px</td>
+</tr>
+<tr>
+<td>Inline with text</td>
+<td>14px</td>
+<td>1.5px</td>
+</tr>
+<tr>
+<td>Tree node chevrons</td>
+<td>12px</td>
+<td>2px</td>
+</tr>
+<tr>
+<td>Panel header actions</td>
+<td>14px</td>
+<td>1.5px</td>
+</tr>
+<tr>
+<td>Empty state illustrations</td>
+<td>48px</td>
+<td>1px</td>
+</tr>
+</tbody></table>
+<h3>Icon Rules</h3>
+<ul>
+<li><strong>Never use colored icons.</strong> All icons are monochrome. The color is determined by the text color of the surrounding element.</li>
+<li><strong>Never use filled icons.</strong> All icons are outline (stroke-based). Filled icons are for high-density mobile contexts only.</li>
+<li><strong>Never use icon animations.</strong> Icons are static. The only exception is the chevron for expand/collapse, which rotates 90 degrees with 100ms transition.</li>
+<li><strong>Never use the sparkles icon (or any sparkle variant) for AI features.</strong> Use <code>bot</code>, <code>cpu</code>, <code>zap</code>, <code>terminal</code>, or <code>code</code> icons to represent AI operations. The sparkles icon is ambiguous and does not communicate &quot;AI&quot; to users (Nielsen Norman Group research).</li>
+<li><strong>Never use the magic wand icon for AI features.</strong> It implies magic and obscures actual functionality. Use <code>wrench</code>, <code>tool</code>, or <code>settings</code> for configuration, <code>play</code> for execution.</li>
+<li><strong>Never use the robot icon for AI.</strong> It anthropomorphizes the system and creates false expectations. Use <code>terminal</code>, <code>code</code>, or <code>file-code</code> for code operations, <code>search</code> for retrieval operations.</li>
+<li><strong>Never use emoji as icons.</strong> The keyboard icon is a lucide keyboard icon, not a keyboard emoji. The warning icon is a lucide triangle-alert, not a warning emoji.</li>
+</ul>
+<h3>Icon Color Usage</h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Color</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Default action</td>
+<td>var(--text)</td>
+<td>File menu, settings</td>
+</tr>
+<tr>
+<td>Secondary action</td>
+<td>var(--text-secondary)</td>
+<td>Toolbar buttons, panel toggles</td>
+</tr>
+<tr>
+<td>Active/selected</td>
+<td>var(--accent)</td>
+<td>Active tab, selected item</td>
+</tr>
+<tr>
+<td>Danger</td>
+<td>var(--text-error)</td>
+<td>Delete, discard, close without saving</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td>var(--text-warning)</td>
+<td>Caution, experimental feature</td>
+</tr>
+<tr>
+<td>Success</td>
+<td>var(--text-success)</td>
+<td>Git sync, push success</td>
+</tr>
+<tr>
+<td>Disabled</td>
+<td>var(--text-tertiary)</td>
+<td>Unavailable action</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>10. Dark Mode and Light Mode</h2>
+<p>The application supports three modes: dark, light, and system (follows OS preference). The default is dark. The mode is stored in <code>settings.json</code> and applied via the <code>data-theme</code> attribute on the <code>&lt;html&gt;</code> element.</p>
+<h3>Mode-Specific Rules</h3>
+<ul>
+<li>Never use <code>prefers-color-scheme</code> media queries directly. All theming is token-based.</li>
+<li>Never hardcode color values in component CSS. Always use CSS custom properties.</li>
+<li>Never assume dark mode is the default in code logic. Always read the token.</li>
+<li>The terminal is always dark, regardless of the application theme. Terminal color is independent.</li>
+<li>The syntax highlighting theme is CodeMirror&#39;s <code>oneDark</code> in dark mode, and a high-contrast light theme (e.g., <code>oneLight</code> or custom) in light mode.</li>
+<li>The diff viewer uses the same token system but with explicit addition/deletion backgrounds that are mode-aware.</li>
+<li>The AI chat panel uses the same token system for message backgrounds and text.</li>
+</ul>
+<h3>Theme Token Coverage</h3>
+<p>Every color value in the application must be defined by a token. If a new component needs a color not covered by existing tokens, a new token must be added to the global CSS and documented here. No exceptions.</p>
+<hr>
+<h2>11. Accessibility</h2>
+<h3>11.1 Keyboard Navigation</h3>
+<ul>
+<li>All interactive elements must be keyboard accessible (Tab, Enter, Space, Escape).</li>
+<li>Focus indicators are visible: 2px solid outline, offset 2px, color <code>var(--border-active)</code>. Never use <code>outline: none</code>.</li>
+<li>The command palette is the primary keyboard-driven interface. All commands are searchable by name and category.</li>
+<li>Global shortcuts are documented in the command palette and shown inline with their keybinding.</li>
+<li>Modals trap focus and return focus to the trigger element on close.</li>
+<li>Skip links are available for jumping to the main editor area and the sidebar.</li>
+</ul>
+<h3>11.2 Screen Reader Support</h3>
+<ul>
+<li>All icons have <code>aria-label</code> or are hidden from screen readers with <code>aria-hidden=&quot;true&quot;</code> when decorative.</li>
+<li>Panel headers use <code>role=&quot;region&quot;</code> with <code>aria-label</code>.</li>
+<li>Status bar information is available via <code>aria-live=&quot;polite&quot;</code> for critical changes.</li>
+<li>Chat messages use <code>role=&quot;log&quot;</code> with <code>aria-live=&quot;polite&quot;</code> so screen readers announce new messages.</li>
+<li>Tool call cards use <code>aria-expanded</code> for collapsible state.</li>
+<li>Diff hunks use <code>aria-label</code> to describe the change: &quot;Added 5 lines to function getConfig.&quot;</li>
+</ul>
+<h3>11.3 Motion Preferences</h3>
+<ul>
+<li>Respect <code>prefers-reduced-motion</code>. When enabled, all transitions become instant (0ms), and skeleton pulsing stops.</li>
+<li>The <code>prefers-reduced-motion</code> setting is independent of the theme setting.</li>
+</ul>
+<h3>11.4 Contrast Minimums</h3>
+<p>All text must meet the APCA targets specified in Section 2.2. The application must include a high-contrast theme option that increases all border and text contrast by 20% for users who need it.</p>
+<hr>
+<h2>12. Responsive and Mobile</h2>
+<h3>12.1 Breakpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Breakpoint</th>
+<th>Name</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt; 768px</td>
+<td>Mobile</td>
+<td>Bottom tab bar, collapsible sidebar, stacked panels</td>
+</tr>
+<tr>
+<td>768px - 1024px</td>
+<td>Tablet</td>
+<td>Collapsible sidebar, split panes allowed, reduced padding</td>
+</tr>
+<tr>
+<td>&gt; 1024px</td>
+<td>Desktop</td>
+<td>Full layout, persistent sidebar, split panes, full padding</td>
+</tr>
+</tbody></table>
+<h3>12.2 Mobile Rules</h3>
+<ul>
+<li>The sidebar is hidden by default on mobile. A hamburger icon (lucide <code>menu</code>) toggles it as an overlay.</li>
+<li>The bottom tab bar shows 5 max tabs: Explorer, Editor, Terminal, Git, AI. Overflow is a &quot;More&quot; menu.</li>
+<li>Touch targets are minimum 44px x 44px.</li>
+<li>All text remains at 13px minimum on mobile. Never reduce text size below 13px for mobile fit.</li>
+<li>Split panes are disabled on mobile. Only one panel is visible at a time.</li>
+<li>The command palette is full-screen on mobile, not a centered overlay.</li>
+<li>Modal dialogs are full-screen sheets on mobile, not centered overlays.</li>
+<li>The keyboard accessory bar is hidden on mobile (the IDE is not a chat app; the keyboard is for code).</li>
+</ul>
+<h3>12.3 Web (Sub-service) Rules</h3>
+<ul>
+<li>The web interface served by the sub-service is identical to the desktop interface at all breakpoints.</li>
+<li>The web interface uses the WebSocket client (<code>packages/common/src/websocket-client.ts</code>) for all backend communication.</li>
+<li>The web interface uses the Tauri mock layer (<code>packages/common/src/tauri-mock-*.ts</code>) for all Tauri-specific APIs.</li>
+<li>The web interface does not show any &quot;web version&quot; branding or watermark. It is Runyard, full stop.</li>
+</ul>
+<hr>
+<h2>13. Anti-Patterns: The Do Not List</h2>
+<h3>13.1 Visual Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Why Banned</th>
+<th>Use Instead</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sparkles icon for AI</td>
+<td>Ambiguous, does not mean &quot;AI&quot; to users, signals &quot;magic&quot;</td>
+<td><code>bot</code>, <code>cpu</code>, <code>zap</code>, <code>terminal</code>, <code>code</code></td>
+</tr>
+<tr>
+<td>Magic wand icon for AI</td>
+<td>Implies magic, obscures functionality</td>
+<td><code>tool</code>, <code>settings</code>, <code>wrench</code>, <code>play</code></td>
+</tr>
+<tr>
+<td>Robot icon for AI</td>
+<td>Anthropomorphizes, creates false expectations</td>
+<td><code>terminal</code>, <code>code</code>, <code>file-code</code></td>
+</tr>
+<tr>
+<td>Gradient backgrounds</td>
+<td>AI slop signature, no functional purpose</td>
+<td>Solid colors from token system</td>
+</tr>
+<tr>
+<td>Gradient text / borders</td>
+<td>AI slop signature, decorative not functional</td>
+<td>Solid text colors from token system</td>
+</tr>
+<tr>
+<td>Blue-to-purple glow (#3B82F6 to #6366F1)</td>
+<td>Most common AI-generated color pattern, signals unoriginality</td>
+<td><code>var(--accent)</code> or <code>var(--accent-secondary)</code> as solid</td>
+</tr>
+<tr>
+<td>Backdrop blur / frosted glass</td>
+<td>Low accessibility, visual noise, generic template</td>
+<td>Solid <code>var(--bg-elevated)</code> with 1px border</td>
+</tr>
+<tr>
+<td>Glassmorphism cards</td>
+<td>Rounded, frosted, floating cards look like a SaaS template</td>
+<td>Flat panels with 0px radius and 1px border</td>
+</tr>
+<tr>
+<td>Box-shadow glows</td>
+<td>Decorative, not functional, signals theatricality</td>
+<td>Explicit border color changes for focus</td>
+</tr>
+<tr>
+<td>Animated shimmer / skeleton wave</td>
+<td>Distracting, implies activity without progress</td>
+<td>Static skeleton blocks or simple opacity pulse</td>
+</tr>
+<tr>
+<td>Animated gradient spinners</td>
+<td>Most overused loading pattern</td>
+<td>1px stroke static spinner or progress bar</td>
+</tr>
+<tr>
+<td>Pulsing dots or breathing animations</td>
+<td>Implies life in a machine, theatrical</td>
+<td>Static text with exact status</td>
+</tr>
+<tr>
+<td>Chat bubbles for code</td>
+<td>Breaks code readability, diff display, structured data</td>
+<td>Flat, full-width message containers</td>
+</tr>
+<tr>
+<td>Rounded cards for code blocks</td>
+<td>Code is not a greeting card, rounded corners reduce readability</td>
+<td>0px radius with 1px border</td>
+</tr>
+<tr>
+<td>Mock IDE elements</td>
+<td>Fake terminal windows, simulated code, performative UI</td>
+<td>Show actual interface or no interface</td>
+</tr>
+<tr>
+<td>Animated typing indicators</td>
+<td>&quot;AI is typing...&quot; with bouncing dots, theatrical</td>
+<td>Show nothing until content is ready, then show it</td>
+</tr>
+<tr>
+<td>Token streams / simulated text generation</td>
+<td>Fake typing animation</td>
+<td>Stream actual text in real-time, no animation</td>
+</tr>
+<tr>
+<td>Confetti or celebratory animations</td>
+<td>Success is silent, celebration is noise</td>
+<td>No animation for success</td>
+</tr>
+<tr>
+<td>Exclamation marks in UI copy</td>
+<td>Adds noise to deterministic statements</td>
+<td>Use periods, or omit punctuation</td>
+</tr>
+<tr>
+<td>Conversational filler in UI copy</td>
+<td>&quot;I would be happy to help!&quot;</td>
+<td>Terse, factual statements: &quot;File saved.&quot;, &quot;3 errors found.&quot;</td>
+</tr>
+<tr>
+<td>Title case for UI labels</td>
+<td>&quot;Open File&quot; instead of &quot;Open file&quot;</td>
+<td>Sentence case for all UI labels</td>
+</tr>
+<tr>
+<td>Emojis in UI text</td>
+<td>Text is for reading, not decoration</td>
+<td>Use lucide icons</td>
+</tr>
+<tr>
+<td>Em dashes in UI text</td>
+<td>Replaced by hyphens for ranges or periods for clauses</td>
+<td>En dashes for ranges, hyphens for compound words, periods for clauses</td>
+</tr>
+<tr>
+<td>Avatar circles for AI agents</td>
+<td>Creates false persona, anthropomorphizes a tool</td>
+<td>Plain text labels: &quot;Agent: code-review&quot;</td>
+</tr>
+<tr>
+<td>Progress bars that are actually decorative</td>
+<td>Bars that move without real progress, or loops that look like progress</td>
+<td>Show real progress or show no progress bar</td>
+</tr>
+<tr>
+<td>&quot;Are you sure?&quot; language in confirmations</td>
+<td>Vague, adds cognitive load</td>
+<td>State exact consequence: &quot;This will delete 3 files permanently.&quot;</td>
+</tr>
+<tr>
+<td>&quot;Something went wrong&quot; error messages</td>
+<td>Vague, hides the actual error</td>
+<td>Show exact error: &quot;Connection failed: ECONNREFUSED.&quot;</td>
+</tr>
+<tr>
+<td>&quot;Oops!&quot; or &quot;Uh oh!&quot; in errors</td>
+<td>Infantilizes the user, treats errors as cute</td>
+<td>State the error factually</td>
+</tr>
+<tr>
+<td>Gradient badges</td>
+<td>Decorative, not functional</td>
+<td>Solid color badges with 10% opacity background</td>
+</tr>
+<tr>
+<td>Shadow badges</td>
+<td>Decorative, not functional</td>
+<td>Flat badges with explicit background color</td>
+</tr>
+<tr>
+<td>Animated badges</td>
+<td>Distracting, implies urgency without cause</td>
+<td>Static badges with color coding</td>
+</tr>
+<tr>
+<td>Glowing prompt boxes</td>
+<td>AI feature input field with neon glow border</td>
+<td>Standard input field styling</td>
+</tr>
+<tr>
+<td>Floating action buttons (FAB)</td>
+<td>Mobile pattern that does not fit desktop IDE</td>
+<td>Toolbar buttons or command palette</td>
+</tr>
+<tr>
+<td>Bottom sheets for desktop</td>
+<td>Mobile pattern forced onto desktop</td>
+<td>Modals or side panels</td>
+</tr>
+<tr>
+<td>Hamburger menu on desktop</td>
+<td>Mobile pattern forced onto desktop</td>
+<td>Persistent sidebar or collapsible panels</td>
+</tr>
+<tr>
+<td>Sticky headers with blur</td>
+<td><code>backdrop-filter: blur</code> on sticky headers</td>
+<td>Solid background with bottom border</td>
+</tr>
+<tr>
+<td>Hero sections with gradients</td>
+<td>Landing page pattern, not IDE pattern</td>
+<td>No hero sections; IDE is a tool, not a brochure</td>
+</tr>
+<tr>
+<td>Parallax scrolling</td>
+<td>Distracting, breaks the tool metaphor</td>
+<td>No parallax; all motion is functional</td>
+</tr>
+<tr>
+<td>3D transforms</td>
+<td>Distracting, breaks the flat tool metaphor</td>
+<td>No 3D transforms</td>
+</tr>
+<tr>
+<td>Animated background patterns</td>
+<td>Subtle animated dots, grids, or waves</td>
+<td>Solid background</td>
+</tr>
+<tr>
+<td>Floating tooltips that follow cursor</td>
+<td>Distracting, blocks content</td>
+<td>Static tooltips with 300ms delay</td>
+</tr>
+<tr>
+<td>Cursor-following spotlight effects</td>
+<td>Darkens everything except the area around cursor</td>
+<td>No cursor effects</td>
+</tr>
+<tr>
+<td>Page transition animations</td>
+<td>Slide, fade, or zoom between pages</td>
+<td>Instant transitions</td>
+</tr>
+<tr>
+<td>Scroll-triggered animations</td>
+<td>Fade-in on scroll, slide-up on scroll</td>
+<td>All content is visible immediately</td>
+</tr>
+<tr>
+<td>Video backgrounds</td>
+<td>Animated or video backgrounds in any UI</td>
+<td>Solid backgrounds</td>
+</tr>
+<tr>
+<td>Sound effects</td>
+<td>Audio feedback for UI actions</td>
+<td>No audio feedback (except terminal bell)</td>
+</tr>
+<tr>
+<td>Vibration / haptic feedback on desktop</td>
+<td>Not appropriate for desktop IDE</td>
+<td>No haptic on desktop</td>
+</tr>
+<tr>
+<td>Splash screens</td>
+<td>&quot;Loading...&quot; with animated logo</td>
+<td>Show the interface as soon as possible</td>
+</tr>
+<tr>
+<td>Onboarding tours with spotlights</td>
+<td>Highlighted UI elements with explanatory overlays</td>
+<td>Welcome panel with static shortcuts</td>
+</tr>
+<tr>
+<td>Tooltips that require click to dismiss</td>
+<td>Tooltips should be hover-only</td>
+<td>Click-to-dismiss only for popovers</td>
+</tr>
+<tr>
+<td>Popovers that require hover to open</td>
+<td>Popovers should be click-to-open</td>
+<td>Click-to-open for all popovers</td>
+</tr>
+<tr>
+<td>Nested dropdown menus</td>
+<td>Multiple levels of hover-activated dropdowns</td>
+<td>Flat menus or command palette</td>
+</tr>
+<tr>
+<td>Context menus that are too long</td>
+<td>More than 15 items in a context menu</td>
+<td>Command palette or submenu for long lists</td>
+</tr>
+<tr>
+<td>Context menus without keyboard shortcuts</td>
+<td>Every menu item should show its shortcut</td>
+<td>Always show keyboard shortcuts</td>
+</tr>
+<tr>
+<td>Invisible scroll areas</td>
+<td>Scrollable areas without visible scrollbar</td>
+<td>Always show scrollbar (custom styled, 10px)</td>
+</tr>
+<tr>
+<td>Custom scrollbars that hide the thumb</td>
+<td>Scrollbars that are too thin to grab</td>
+<td>Minimum 10px scrollbar width</td>
+</tr>
+<tr>
+<td>Scrollbars that overlap content</td>
+<td>Scrollbars drawn on top of content</td>
+<td>Use <code>scrollbar-gutter: stable</code> or padding</td>
+</tr>
+<tr>
+<td>Modal stacking</td>
+<td>Multiple modals open at once</td>
+<td>Close one modal before opening another</td>
+</tr>
+<tr>
+<td>Modal without focus trap</td>
+<td>Tab can escape modal and focus background</td>
+<td>Always trap focus in modals</td>
+</tr>
+<tr>
+<td>Modal without close button</td>
+<td>No way to dismiss modal without keyboard</td>
+<td>Always provide close button and Escape</td>
+</tr>
+<tr>
+<td>Toast notifications that stack</td>
+<td>Multiple toasts overlapping</td>
+<td>Show one at a time, or use status bar</td>
+</tr>
+<tr>
+<td>Toast notifications that persist forever</td>
+<td>Toasts that never auto-dismiss</td>
+<td>Auto-dismiss after 5 seconds</td>
+</tr>
+<tr>
+<td>Toast notifications with action buttons</td>
+<td>Toasts that require user action</td>
+<td>Use modals for actions</td>
+</tr>
+<tr>
+<td>Inline validation with red text only</td>
+<td>Red text without border or icon</td>
+<td>Use red border + icon + text</td>
+</tr>
+<tr>
+<td>Inline validation with shake animation</td>
+<td>Input field shakes on error</td>
+<td>Use static border color change</td>
+</tr>
+<tr>
+<td>Inline validation with success animation</td>
+<td>Green checkmark that animates in</td>
+<td>No success validation animation</td>
+</tr>
+<tr>
+<td>Form labels inside inputs</td>
+<td>Placeholder text used as label</td>
+<td>Labels always above inputs</td>
+</tr>
+<tr>
+<td>Form labels that animate on focus</td>
+<td>Floating labels that move on focus</td>
+<td>Static labels above inputs</td>
+</tr>
+<tr>
+<td>Form inputs with animated underlines</td>
+<td>Underline that expands from center on focus</td>
+<td>Use static border color change</td>
+</tr>
+<tr>
+<td>Password fields with show/hide toggle that uses an eye icon</td>
+<td>Eye icon is ambiguous (does it show or hide?)</td>
+<td>Use text toggle: &quot;Show&quot; / &quot;Hide&quot;</td>
+</tr>
+<tr>
+<td>Search inputs with microphone icon</td>
+<td>Implies voice search, which is not implemented</td>
+<td>No microphone icon unless voice search exists</td>
+</tr>
+<tr>
+<td>Search inputs with animated search icon</td>
+<td>Spinning magnifying glass</td>
+<td>Static search icon</td>
+</tr>
+<tr>
+<td>Search results with highlighted text that uses yellow background</td>
+<td>Low contrast in dark mode</td>
+<td>Use accent color background with 20% opacity</td>
+</tr>
+<tr>
+<td>Search results with &quot;Did you mean?&quot; suggestions</td>
+<td>Suggests the user made a mistake</td>
+<td>Show exact results or &quot;No results&quot;</td>
+</tr>
+<tr>
+<td>Empty states with illustrations</td>
+<td>Empty states with decorative illustrations</td>
+<td>Empty states with actionable text and a primary button</td>
+</tr>
+<tr>
+<td>Empty states with &quot;Nothing to see here&quot; text</td>
+<td>Vague, unhelpful</td>
+<td>State exactly what is empty and how to populate it</td>
+</tr>
+<tr>
+<td>Empty states with sad face icons</td>
+<td>Anthropomorphizes emptiness</td>
+<td>No emotional indicators for empty states</td>
+</tr>
+<tr>
+<td>Error boundaries with &quot;Something went wrong&quot; text</td>
+<td>Vague, unhelpful</td>
+<td>Show the error stack trace and a reload button</td>
+</tr>
+<tr>
+<td>Error boundaries with &quot;We&#39;ll look into it&quot; text</td>
+<td>False reassurance, no action</td>
+<td>Show the error, provide reload button, and a link to report</td>
+</tr>
+<tr>
+<td>Error boundaries with &quot;Contact support&quot; as the only action</td>
+<td>Punting the problem to a human</td>
+<td>Provide reload, retry, and diagnostic options first</td>
+</tr>
+<tr>
+<td>404 pages with playful illustrations</td>
+<td>Not appropriate for a professional tool</td>
+<td>404 page: &quot;Not Found. The path /path/to/file does not exist.&quot; with a back button</td>
+</tr>
+<tr>
+<td>500 pages with &quot;Our bad&quot; text</td>
+<td>Infantilizes the error</td>
+<td>500 page: &quot;Server Error. Error code: 500. Time: 2024-01-15T10:30:00Z.&quot; with a reload button</td>
+</tr>
+<tr>
+<td>Maintenance pages with &quot;Be right back&quot; text</td>
+<td>Vague, no timeline</td>
+<td>Maintenance page: &quot;Runyard is being updated. Estimated completion: 14:30 UTC.&quot;</td>
+</tr>
+<tr>
+<td>Loading pages with &quot;Just a moment&quot; text</td>
+<td>Vague, implies speed</td>
+<td>Loading page: &quot;Loading project files...&quot; with a progress bar</td>
+</tr>
+<tr>
+<td>Loading pages with animated logos</td>
+<td>Decorative, not functional</td>
+<td>Loading page: progress bar and current operation name</td>
+</tr>
+<tr>
+<td>Loading pages with percentage counters that count up to 100% artificially</td>
+<td>Fake progress</td>
+<td>Show real progress based on actual work completed</td>
+</tr>
+<tr>
+<td>Loading pages with &quot;Loading...&quot; text and no progress indication</td>
+<td>No feedback on progress</td>
+<td>Show progress bar and current operation</td>
+</tr>
+<tr>
+<td>Tooltips with more than 2 lines of text</td>
+<td>Tooltips should be brief</td>
+<td>Use a popover or a help panel for longer explanations</td>
+</tr>
+<tr>
+<td>Tooltips with interactive elements</td>
+<td>Tooltips should not contain links or buttons</td>
+<td>Use a popover for interactive elements</td>
+</tr>
+<tr>
+<td>Tooltips that appear instantly</td>
+<td>No delay makes them distracting</td>
+<td>Use 300ms delay</td>
+</tr>
+<tr>
+<td>Tooltips that persist after mouse leaves</td>
+<td>Tooltips should disappear immediately</td>
+<td>Use 0ms delay on mouse leave</td>
+</tr>
+<tr>
+<td>Tooltips with animated fade-in</td>
+<td>Subtle fade is okay, but no bounce or slide</td>
+<td>Use 100ms opacity fade</td>
+</tr>
+<tr>
+<td>Tooltips that follow the cursor</td>
+<td>Distracting, blocks content</td>
+<td>Use static position relative to trigger</td>
+</tr>
+<tr>
+<td>Tooltips with arrows that are too large</td>
+<td>Arrows should be 4px, not 8px or more</td>
+<td>Use 4px arrow</td>
+</tr>
+<tr>
+<td>Tooltips that overflow the viewport</td>
+<td>Tooltips should be constrained to viewport</td>
+<td>Use repositioning or max-width</td>
+</tr>
+<tr>
+<td>Tooltips with shadow that looks like a glow</td>
+<td>No glow effects on tooltips</td>
+<td>Use standard shadow-1</td>
+</tr>
+<tr>
+<td>Tooltips with border-radius &gt; 4px</td>
+<td>Tooltips are functional, not decorative</td>
+<td>Use 4px radius</td>
+</tr>
+<tr>
+<td>Tooltips with padding &gt; 8px</td>
+<td>Tooltips should be compact</td>
+<td>Use 4px 8px padding</td>
+</tr>
+<tr>
+<td>Dropdown menus with more than 15 items</td>
+<td>Long menus are hard to scan</td>
+<td>Use submenus or command palette</td>
+</tr>
+<tr>
+<td>Dropdown menus with icons and text misaligned</td>
+<td>Icons should be aligned to the left, text after</td>
+<td>Use consistent 8px gap between icon and text</td>
+</tr>
+<tr>
+<td>Dropdown menus without keyboard navigation</td>
+<td>Menus must be keyboard navigable</td>
+<td>Use arrow keys and Enter/Space</td>
+</tr>
+<tr>
+<td>Dropdown menus without escape-to-close</td>
+<td>Escape must close the menu</td>
+<td>Always close on Escape</td>
+</tr>
+<tr>
+<td>Dropdown menus that close on hover-out</td>
+<td>Hover-out is too sensitive</td>
+<td>Close on click outside or Escape</td>
+</tr>
+<tr>
+<td>Dropdown menus with hover-to-open submenus</td>
+<td>Hover-to-open is error-prone</td>
+<td>Use click-to-open for submenus</td>
+</tr>
+<tr>
+<td>Dropdown menus with disabled items that look the same as enabled</td>
+<td>Disabled items must be visually distinct</td>
+<td>Use opacity 0.5 and no cursor pointer</td>
+</tr>
+<tr>
+<td>Dropdown menus with selected items that use a checkmark</td>
+<td>Checkmark is okay, but must be consistent</td>
+<td>Always use checkmark for selected, or always use highlight</td>
+</tr>
+<tr>
+<td>Dropdown menus with dividers that are too prominent</td>
+<td>Dividers should be 1px, var(--border)</td>
+<td>Use 1px solid dividers</td>
+</tr>
+<tr>
+<td>Dropdown menus with headers that look like items</td>
+<td>Headers must be visually distinct</td>
+<td>Use 11px uppercase, weight 700, letter-spacing 0.05em</td>
+</tr>
+<tr>
+<td>Dropdown menus with items that have both icon and keyboard shortcut</td>
+<td>Both must be visible, shortcut aligned right</td>
+<td>Align shortcut to the right, 8px gap</td>
+</tr>
+<tr>
+<td>Accordion panels with animated height</td>
+<td>Height animation causes layout thrashing</td>
+<td>Use instant open/close or max-height transition</td>
+</tr>
+<tr>
+<td>Accordion panels with rotating chevron that spins 360 degrees</td>
+<td>90 degrees is sufficient, 360 is theatrical</td>
+<td>Use 90-degree rotation</td>
+</tr>
+<tr>
+<td>Accordion panels with content that fades in</td>
+<td>Fade is unnecessary if height changes</td>
+<td>No fade, just show the content</td>
+</tr>
+<tr>
+<td>Tabs that scroll horizontally without scrollbar</td>
+<td>Hidden scrollbar is undiscoverable</td>
+<td>Always show scrollbar or use overflow visible with arrows</td>
+</tr>
+<tr>
+<td>Tabs that use arrows to scroll</td>
+<td>Arrows are okay, but must be visible and clickable</td>
+<td>Use 16px arrow buttons on tab bar edges</td>
+</tr>
+<tr>
+<td>Tabs that reorder with drag and drop</td>
+<td>Drag and drop is okay, but must have visual feedback</td>
+<td>Use opacity change and ghost preview</td>
+</tr>
+<tr>
+<td>Tabs that close with a hover-only X</td>
+<td>X must be visible on hover, but also accessible via keyboard</td>
+<td>Show X on hover, add keyboard shortcut</td>
+</tr>
+<tr>
+<td>Tabs that show a tooltip on hover with the full title</td>
+<td>Only needed if title is truncated</td>
+<td>Use tooltip only if title is truncated</td>
+</tr>
+<tr>
+<td>Tabs that use different colors for different types</td>
+<td>Color coding is okay, but must be semantic</td>
+<td>Use accent colors for active states only</td>
+</tr>
+<tr>
+<td>Tabs that use badges with numbers</td>
+<td>Badges are okay, but must be compact</td>
+<td>Use 11px badge with 2px 6px padding</td>
+</tr>
+<tr>
+<td>Tabs that use badges with text</td>
+<td>Text badges are too wide</td>
+<td>Use icon badges or number badges only</td>
+</tr>
+<tr>
+<td>Tabs that are vertical</td>
+<td>Vertical tabs are not standard for IDEs</td>
+<td>Use horizontal tabs, or sidebar sections</td>
+</tr>
+<tr>
+<td>Tabs that are inside a panel</td>
+<td>Tabs inside panels are okay (e.g., settings tabs)</td>
+<td>Use 2px border-bottom for active state</td>
+</tr>
+<tr>
+<td>Tabs that are inside a modal</td>
+<td>Modal tabs are okay</td>
+<td>Use same tab styling as main tabs</td>
+</tr>
+<tr>
+<td>Tabs that are inside a sidebar</td>
+<td>Sidebar tabs are not standard</td>
+<td>Use sidebar sections or accordion</td>
+</tr>
+<tr>
+<td>Tabs that use a dropdown for overflow</td>
+<td>Dropdown is okay for overflow tabs</td>
+<td>Use &quot;...&quot; dropdown with tab list</td>
+</tr>
+<tr>
+<td>Tabs that use a &quot;more&quot; button for overflow</td>
+<td>&quot;More&quot; button is okay</td>
+<td>Use &quot;...&quot; button with tab list</td>
+</tr>
+<tr>
+<td>Tabs that use a carousel for overflow</td>
+<td>Carousel is not appropriate for tabs</td>
+<td>Use dropdown or scroll</td>
+</tr>
+<tr>
+<td>Tabs that are swipeable on mobile</td>
+<td>Swipeable tabs are okay on mobile</td>
+<td>Use bottom tab bar instead</td>
+</tr>
+<tr>
+<td>Tabs that are swipeable on desktop</td>
+<td>Swipeable tabs are not appropriate for desktop</td>
+<td>Use click or keyboard navigation</td>
+</tr>
+<tr>
+<td>Panels that resize with animated transition</td>
+<td>Resize should follow pointer, not animate</td>
+<td>Use instant resize on drag</td>
+</tr>
+<tr>
+<td>Panels that collapse with animated transition</td>
+<td>Collapse can animate (200ms)</td>
+<td>Use 200ms ease-in-out</td>
+</tr>
+<tr>
+<td>Panels that expand with animated transition</td>
+<td>Expand can animate (200ms)</td>
+<td>Use 200ms ease-in-out</td>
+</tr>
+<tr>
+<td>Panels that use a handle for resizing</td>
+<td>Handle is necessary, must be visible</td>
+<td>Use 4px handle with hover color change</td>
+</tr>
+<tr>
+<td>Panels that use a drag handle for reordering</td>
+<td>Drag handle is okay, must be visible</td>
+<td>Use 6-dot drag handle icon</td>
+</tr>
+<tr>
+<td>Panels that use a grip handle for resizing</td>
+<td>Grip handle is okay</td>
+<td>Use vertical or horizontal line pattern</td>
+</tr>
+<tr>
+<td>Panels that overlap when resized</td>
+<td>Panels must not overlap</td>
+<td>Use flex layout, no overlap</td>
+</tr>
+<tr>
+<td>Panels that use absolute positioning</td>
+<td>Absolute positioning is fragile</td>
+<td>Use flex or grid layout</td>
+</tr>
+<tr>
+<td>Panels that use z-index for stacking</td>
+<td>Z-index must be managed carefully</td>
+<td>Use z-index scale: 100, 200, 300, etc.</td>
+</tr>
+<tr>
+<td>Panels that use a backdrop for modal overlay</td>
+<td>Backdrop is necessary</td>
+<td>Use var(--bg-overlay)</td>
+</tr>
+<tr>
+<td>Panels that use a close button in the corner</td>
+<td>Close button is necessary</td>
+<td>Use 14px X icon, top-right corner</td>
+</tr>
+<tr>
+<td>Panels that use a maximize button</td>
+<td>Maximize is okay for floating panels</td>
+<td>Use 14px maximize icon</td>
+</tr>
+<tr>
+<td>Panels that use a minimize button</td>
+<td>Minimize is okay for floating panels</td>
+<td>Use 14px minimize icon</td>
+</tr>
+<tr>
+<td>Panels that use a pin button</td>
+<td>Pin is okay for floating panels</td>
+<td>Use 14px pin icon</td>
+</tr>
+<tr>
+<td>Panels that use a pop-out button</td>
+<td>Pop-out is okay for floating panels</td>
+<td>Use 14px pop-out icon</td>
+</tr>
+<tr>
+<td>Panels that use a settings button</td>
+<td>Settings button is okay</td>
+<td>Use 14px gear icon</td>
+</tr>
+<tr>
+<td>Panels that use a refresh button</td>
+<td>Refresh button is okay</td>
+<td>Use 14px refresh icon</td>
+</tr>
+<tr>
+<td>Panels that use a filter button</td>
+<td>Filter button is okay</td>
+<td>Use 14px filter icon</td>
+</tr>
+<tr>
+<td>Panels that use a search input</td>
+<td>Search input is okay</td>
+<td>Use 13px input with search icon</td>
+</tr>
+<tr>
+<td>Panels that use a sort button</td>
+<td>Sort button is okay</td>
+<td>Use 14px sort icon</td>
+</tr>
+<tr>
+<td>Panels that use a view toggle button</td>
+<td>View toggle is okay</td>
+<td>Use 14px list/grid icons</td>
+</tr>
+<tr>
+<td>Panels that use a column resizer</td>
+<td>Column resizer is okay</td>
+<td>Use 4px vertical handle</td>
+</tr>
+<tr>
+<td>Panels that use a row resizer</td>
+<td>Row resizer is okay</td>
+<td>Use 4px horizontal handle</td>
+</tr>
+<tr>
+<td>Panels that use a splitter</td>
+<td>Splitter is okay</td>
+<td>Use 4px splitter with hover color change</td>
+</tr>
+<tr>
+<td>Panels that use a gutter</td>
+<td>Gutter is okay</td>
+<td>Use 4px gutter with background color</td>
+</tr>
+<tr>
+<td>Panels that use a margin</td>
+<td>Margin is okay</td>
+<td>Use 8px minimum margin</td>
+</tr>
+<tr>
+<td>Panels that use a padding</td>
+<td>Padding is okay</td>
+<td>Use 12px default padding</td>
+</tr>
+<tr>
+<td>Panels that use a border</td>
+<td>Border is okay</td>
+<td>Use 1px solid var(--border)</td>
+</tr>
+<tr>
+<td>Panels that use a shadow</td>
+<td>Shadow is okay for floating panels</td>
+<td>Use var(--shadow-2)</td>
+</tr>
+<tr>
+<td>Panels that use a background color</td>
+<td>Background color is necessary</td>
+<td>Use var(--bg-secondary)</td>
+</tr>
+<tr>
+<td>Panels that use a text color</td>
+<td>Text color is necessary</td>
+<td>Use var(--text)</td>
+</tr>
+<tr>
+<td>Panels that use a font size</td>
+<td>Font size is necessary</td>
+<td>Use 13px default</td>
+</tr>
+<tr>
+<td>Panels that use a font weight</td>
+<td>Font weight is necessary</td>
+<td>Use 400 default</td>
+</tr>
+<tr>
+<td>Panels that use a line height</td>
+<td>Line height is necessary</td>
+<td>Use 20px default</td>
+</tr>
+<tr>
+<td>Panels that use a letter spacing</td>
+<td>Letter spacing is necessary</td>
+<td>Use 0 default</td>
+</tr>
+<tr>
+<td>Panels that use a text transform</td>
+<td>Text transform is okay for headers</td>
+<td>Use uppercase for panel headers only</td>
+</tr>
+<tr>
+<td>Panels that use a text decoration</td>
+<td>Text decoration is okay for links</td>
+<td>Use underline for links only</td>
+</tr>
+<tr>
+<td>Panels that use a text align</td>
+<td>Text align is okay</td>
+<td>Use left align default</td>
+</tr>
+<tr>
+<td>Panels that use a vertical align</td>
+<td>Vertical align is okay</td>
+<td>Use middle default</td>
+</tr>
+<tr>
+<td>Panels that use a white space</td>
+<td>White space is okay</td>
+<td>Use normal default</td>
+</tr>
+<tr>
+<td>Panels that use a word break</td>
+<td>Word break is okay</td>
+<td>Use break-word for long paths</td>
+</tr>
+<tr>
+<td>Panels that use a overflow</td>
+<td>Overflow is okay</td>
+<td>Use auto for scrollable content</td>
+</tr>
+<tr>
+<td>Panels that use a cursor</td>
+<td>Cursor is okay</td>
+<td>Use pointer for interactive elements</td>
+</tr>
+<tr>
+<td>Panels that use a user select</td>
+<td>User select is okay</td>
+<td>Use none for UI elements, text for content</td>
+</tr>
+<tr>
+<td>Panels that use a pointer events</td>
+<td>Pointer events is okay</td>
+<td>Use auto default</td>
+</tr>
+<tr>
+<td>Panels that use a touch action</td>
+<td>Touch action is okay for mobile</td>
+<td>Use pan-y for scrollable areas</td>
+</tr>
+<tr>
+<td>Panels that use a scroll behavior</td>
+<td>Scroll behavior is okay</td>
+<td>Use auto default</td>
+</tr>
+<tr>
+<td>Panels that use a scroll snap</td>
+<td>Scroll snap is not appropriate for IDE</td>
+<td>Use free scroll</td>
+</tr>
+<tr>
+<td>Panels that use a overscroll behavior</td>
+<td>Overscroll behavior is okay</td>
+<td>Use contain for modals</td>
+</tr>
+<tr>
+<td>Panels that use a resize</td>
+<td>Resize is okay for textareas</td>
+<td>Use both for textareas</td>
+</tr>
+<tr>
+<td>Panels that use a appearance</td>
+<td>Appearance is okay for form elements</td>
+<td>Use none for custom styling</td>
+</tr>
+<tr>
+<td>Panels that use a outline</td>
+<td>Outline is okay for focus</td>
+<td>Use 2px solid var(--border-active)</td>
+</tr>
+<tr>
+<td>Panels that use a box sizing</td>
+<td>Box sizing is necessary</td>
+<td>Use border-box for all elements</td>
+</tr>
+<tr>
+<td>Panels that use a display</td>
+<td>Display is necessary</td>
+<td>Use flex or block</td>
+</tr>
+<tr>
+<td>Panels that use a position</td>
+<td>Position is necessary</td>
+<td>Use relative or absolute</td>
+</tr>
+<tr>
+<td>Panels that use a top</td>
+<td>Top is necessary for positioning</td>
+<td>Use pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a right</td>
+<td>Right is necessary for positioning</td>
+<td>Use pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a bottom</td>
+<td>Bottom is necessary for positioning</td>
+<td>Use pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a left</td>
+<td>Left is necessary for positioning</td>
+<td>Use pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a width</td>
+<td>Width is necessary</td>
+<td>Use percentage or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a height</td>
+<td>Height is necessary</td>
+<td>Use percentage or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a min width</td>
+<td>Min width is necessary</td>
+<td>Use 0 or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a min height</td>
+<td>Min height is necessary</td>
+<td>Use 0 or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a max width</td>
+<td>Max width is necessary</td>
+<td>Use percentage or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a max height</td>
+<td>Max height is necessary</td>
+<td>Use percentage or pixel values</td>
+</tr>
+<tr>
+<td>Panels that use a z index</td>
+<td>Z index is necessary</td>
+<td>Use z-index scale: 100, 200, 300, etc.</td>
+</tr>
+<tr>
+<td>Panels that use a opacity</td>
+<td>Opacity is okay for disabled states</td>
+<td>Use 0.5 for disabled</td>
+</tr>
+<tr>
+<td>Panels that use a visibility</td>
+<td>Visibility is okay</td>
+<td>Use visible or hidden</td>
+</tr>
+<tr>
+<td>Panels that use a transform</td>
+<td>Transform is okay for positioning</td>
+<td>Use translate for positioning</td>
+</tr>
+<tr>
+<td>Panels that use a transform origin</td>
+<td>Transform origin is okay</td>
+<td>Use center default</td>
+</tr>
+<tr>
+<td>Panels that use a perspective</td>
+<td>Perspective is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a perspective origin</td>
+<td>Perspective origin is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a backface visibility</td>
+<td>Backface visibility is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a will change</td>
+<td>Will change is okay for performance</td>
+<td>Use transform or opacity</td>
+</tr>
+<tr>
+<td>Panels that use a contain</td>
+<td>Contain is okay for performance</td>
+<td>Use layout or paint</td>
+</tr>
+<tr>
+<td>Panels that use a isolation</td>
+<td>Isolation is okay for stacking</td>
+<td>Use isolate for floating panels</td>
+</tr>
+<tr>
+<td>Panels that use a clip path</td>
+<td>Clip path is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a mask</td>
+<td>Mask is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a filter</td>
+<td>Filter is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a mix blend mode</td>
+<td>Mix blend mode is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a background blend mode</td>
+<td>Background blend mode is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a image rendering</td>
+<td>Image rendering is okay</td>
+<td>Use auto or pixelated</td>
+</tr>
+<tr>
+<td>Panels that use a shape rendering</td>
+<td>Shape rendering is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a text rendering</td>
+<td>Text rendering is okay</td>
+<td>Use optimizeLegibility</td>
+</tr>
+<tr>
+<td>Panels that use a color interpolation</td>
+<td>Color interpolation is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a color rendering</td>
+<td>Color rendering is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a fill</td>
+<td>Fill is okay for SVG</td>
+<td>Use currentColor</td>
+</tr>
+<tr>
+<td>Panels that use a stroke</td>
+<td>Stroke is okay for SVG</td>
+<td>Use currentColor</td>
+</tr>
+<tr>
+<td>Panels that use a stroke width</td>
+<td>Stroke width is okay for SVG</td>
+<td>Use 1.5px default</td>
+</tr>
+<tr>
+<td>Panels that use a stroke linecap</td>
+<td>Stroke linecap is okay for SVG</td>
+<td>Use round</td>
+</tr>
+<tr>
+<td>Panels that use a stroke linejoin</td>
+<td>Stroke linejoin is okay for SVG</td>
+<td>Use round</td>
+</tr>
+<tr>
+<td>Panels that use a stroke dasharray</td>
+<td>Stroke dasharray is okay for SVG</td>
+<td>Use none for solid lines</td>
+</tr>
+<tr>
+<td>Panels that use a stroke dashoffset</td>
+<td>Stroke dashoffset is not appropriate</td>
+<td>Do not use for animated dashes</td>
+</tr>
+<tr>
+<td>Panels that use a paint order</td>
+<td>Paint order is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a vector effect</td>
+<td>Vector effect is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a clip rule</td>
+<td>Clip rule is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a fill rule</td>
+<td>Fill rule is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a fill opacity</td>
+<td>Fill opacity is okay</td>
+<td>Use 1 default</td>
+</tr>
+<tr>
+<td>Panels that use a stroke opacity</td>
+<td>Stroke opacity is okay</td>
+<td>Use 1 default</td>
+</tr>
+<tr>
+<td>Panels that use a stop color</td>
+<td>Stop color is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a stop opacity</td>
+<td>Stop opacity is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a gradient units</td>
+<td>Gradient units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a gradient transform</td>
+<td>Gradient transform is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a pattern units</td>
+<td>Pattern units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a pattern transform</td>
+<td>Pattern transform is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a mask units</td>
+<td>Mask units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a mask content units</td>
+<td>Mask content units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a filter units</td>
+<td>Filter units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a primitive units</td>
+<td>Primitive units is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref x</td>
+<td>Ref x is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref y</td>
+<td>Ref y is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref x2</td>
+<td>Ref x2 is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref y2</td>
+<td>Ref y2 is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref cx</td>
+<td>Ref cx is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref cy</td>
+<td>Ref cy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref r</td>
+<td>Ref r is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref fx</td>
+<td>Ref fx is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref fy</td>
+<td>Ref fy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref width</td>
+<td>Ref width is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a ref height</td>
+<td>Ref height is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a href</td>
+<td>Href is okay for links</td>
+<td>Use for external links only</td>
+</tr>
+<tr>
+<td>Panels that use a xlink href</td>
+<td>Xlink href is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a target</td>
+<td>Target is okay for links</td>
+<td>Use blank for external links</td>
+</tr>
+<tr>
+<td>Panels that use a rel</td>
+<td>Rel is okay for links</td>
+<td>Use noopener noreferrer</td>
+</tr>
+<tr>
+<td>Panels that use a download</td>
+<td>Download is okay for links</td>
+<td>Use for file downloads</td>
+</tr>
+<tr>
+<td>Panels that use a ping</td>
+<td>Ping is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a hreflang</td>
+<td>Hreflang is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a type</td>
+<td>Type is okay for inputs</td>
+<td>Use appropriate input type</td>
+</tr>
+<tr>
+<td>Panels that use a name</td>
+<td>Name is okay for form elements</td>
+<td>Use for form submission</td>
+</tr>
+<tr>
+<td>Panels that use a value</td>
+<td>Value is okay for form elements</td>
+<td>Use for input values</td>
+</tr>
+<tr>
+<td>Panels that use a placeholder</td>
+<td>Placeholder is okay for inputs</td>
+<td>Use for hints only</td>
+</tr>
+<tr>
+<td>Panels that use a required</td>
+<td>Required is okay for inputs</td>
+<td>Use for validation</td>
+</tr>
+<tr>
+<td>Panels that use a readonly</td>
+<td>Readonly is okay for inputs</td>
+<td>Use for non-editable inputs</td>
+</tr>
+<tr>
+<td>Panels that use a disabled</td>
+<td>Disabled is okay for inputs</td>
+<td>Use for non-interactive inputs</td>
+</tr>
+<tr>
+<td>Panels that use a checked</td>
+<td>Checked is okay for checkboxes</td>
+<td>Use for checkbox state</td>
+</tr>
+<tr>
+<td>Panels that use a selected</td>
+<td>Selected is okay for selects</td>
+<td>Use for option state</td>
+</tr>
+<tr>
+<td>Panels that use a multiple</td>
+<td>Multiple is okay for selects</td>
+<td>Use for multi-select</td>
+</tr>
+<tr>
+<td>Panels that use a size</td>
+<td>Size is okay for selects</td>
+<td>Use for visible option count</td>
+</tr>
+<tr>
+<td>Panels that use a maxlength</td>
+<td>Maxlength is okay for inputs</td>
+<td>Use for character limit</td>
+</tr>
+<tr>
+<td>Panels that use a minlength</td>
+<td>Minlength is okay for inputs</td>
+<td>Use for minimum length</td>
+</tr>
+<tr>
+<td>Panels that use a pattern</td>
+<td>Pattern is okay for inputs</td>
+<td>Use for regex validation</td>
+</tr>
+<tr>
+<td>Panels that use a min</td>
+<td>Min is okay for number inputs</td>
+<td>Use for minimum value</td>
+</tr>
+<tr>
+<td>Panels that use a max</td>
+<td>Max is okay for number inputs</td>
+<td>Use for maximum value</td>
+</tr>
+<tr>
+<td>Panels that use a step</td>
+<td>Step is okay for number inputs</td>
+<td>Use for increment value</td>
+</tr>
+<tr>
+<td>Panels that use a autocomplete</td>
+<td>Autocomplete is okay for inputs</td>
+<td>Use off for sensitive fields</td>
+</tr>
+<tr>
+<td>Panels that use a autofocus</td>
+<td>Autofocus is okay for inputs</td>
+<td>Use for first input in modal</td>
+</tr>
+<tr>
+<td>Panels that use a form</td>
+<td>Form is okay for inputs</td>
+<td>Use for form association</td>
+</tr>
+<tr>
+<td>Panels that use a formaction</td>
+<td>Formaction is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a formenctype</td>
+<td>Formenctype is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a formmethod</td>
+<td>Formmethod is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a formnovalidate</td>
+<td>Formnovalidate is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a formtarget</td>
+<td>Formtarget is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a height</td>
+<td>Height is okay for media</td>
+<td>Use for video or canvas</td>
+</tr>
+<tr>
+<td>Panels that use a width</td>
+<td>Width is okay for media</td>
+<td>Use for video or canvas</td>
+</tr>
+<tr>
+<td>Panels that use a src</td>
+<td>Src is okay for media</td>
+<td>Use for images or video</td>
+</tr>
+<tr>
+<td>Panels that use a srcset</td>
+<td>Srcset is okay for images</td>
+<td>Use for responsive images</td>
+</tr>
+<tr>
+<td>Panels that use a sizes</td>
+<td>Sizes is okay for images</td>
+<td>Use for responsive images</td>
+</tr>
+<tr>
+<td>Panels that use a alt</td>
+<td>Alt is necessary for images</td>
+<td>Use for accessibility</td>
+</tr>
+<tr>
+<td>Panels that use a loading</td>
+<td>Loading is okay for images</td>
+<td>Use lazy for below-fold images</td>
+</tr>
+<tr>
+<td>Panels that use a decoding</td>
+<td>Decoding is okay for images</td>
+<td>Use async for images</td>
+</tr>
+<tr>
+<td>Panels that use a crossorigin</td>
+<td>Crossorigin is okay for media</td>
+<td>Use for CORS media</td>
+</tr>
+<tr>
+<td>Panels that use a integrity</td>
+<td>Integrity is okay for scripts</td>
+<td>Use for security</td>
+</tr>
+<tr>
+<td>Panels that use a referrerpolicy</td>
+<td>Referrerpolicy is okay for links</td>
+<td>Use for privacy</td>
+</tr>
+<tr>
+<td>Panels that use a slot</td>
+<td>Slot is okay for web components</td>
+<td>Use for content projection</td>
+</tr>
+<tr>
+<td>Panels that use a part</td>
+<td>Part is okay for web components</td>
+<td>Use for styling</td>
+</tr>
+<tr>
+<td>Panels that use a exportparts</td>
+<td>Exportparts is okay for web components</td>
+<td>Use for styling</td>
+</tr>
+<tr>
+<td>Panels that use a shadowroot</td>
+<td>Shadowroot is okay for web components</td>
+<td>Use for encapsulation</td>
+</tr>
+<tr>
+<td>Panels that use a shadowrootmode</td>
+<td>Shadowrootmode is okay for web components</td>
+<td>Use for open or closed</td>
+</tr>
+<tr>
+<td>Panels that use a shadowrootdelegatesfocus</td>
+<td>Shadowrootdelegatesfocus is okay for web components</td>
+<td>Use for focus delegation</td>
+</tr>
+<tr>
+<td>Panels that use a shadowrootclonable</td>
+<td>Shadowrootclonable is okay for web components</td>
+<td>Use for cloning</td>
+</tr>
+<tr>
+<td>Panels that use a shadowrootserializable</td>
+<td>Shadowrootserializable is okay for web components</td>
+<td>Use for serialization</td>
+</tr>
+<tr>
+<td>Panels that use a template</td>
+<td>Template is okay for web components</td>
+<td>Use for templates</td>
+</tr>
+<tr>
+<td>Panels that use a slot name</td>
+<td>Slot name is okay for web components</td>
+<td>Use for named slots</td>
+</tr>
+<tr>
+<td>Panels that use a aria label</td>
+<td>Aria label is necessary for accessibility</td>
+<td>Use for all interactive elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria labelledby</td>
+<td>Aria labelledby is necessary for accessibility</td>
+<td>Use for form groups</td>
+</tr>
+<tr>
+<td>Panels that use a aria describedby</td>
+<td>Aria describedby is necessary for accessibility</td>
+<td>Use for form inputs</td>
+</tr>
+<tr>
+<td>Panels that use a aria hidden</td>
+<td>Aria hidden is necessary for accessibility</td>
+<td>Use for decorative elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria expanded</td>
+<td>Aria expanded is necessary for accessibility</td>
+<td>Use for collapsible elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria selected</td>
+<td>Aria selected is necessary for accessibility</td>
+<td>Use for selectable elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria checked</td>
+<td>Aria checked is necessary for accessibility</td>
+<td>Use for checkboxes</td>
+</tr>
+<tr>
+<td>Panels that use a aria pressed</td>
+<td>Aria pressed is necessary for accessibility</td>
+<td>Use for toggle buttons</td>
+</tr>
+<tr>
+<td>Panels that use a aria disabled</td>
+<td>Aria disabled is necessary for accessibility</td>
+<td>Use for disabled elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria readonly</td>
+<td>Aria readonly is necessary for accessibility</td>
+<td>Use for readonly inputs</td>
+</tr>
+<tr>
+<td>Panels that use a aria required</td>
+<td>Aria required is necessary for accessibility</td>
+<td>Use for required inputs</td>
+</tr>
+<tr>
+<td>Panels that use a aria invalid</td>
+<td>Aria invalid is necessary for accessibility</td>
+<td>Use for invalid inputs</td>
+</tr>
+<tr>
+<td>Panels that use a aria busy</td>
+<td>Aria busy is necessary for accessibility</td>
+<td>Use for loading elements</td>
+</tr>
+<tr>
+<td>Panels that use a aria live</td>
+<td>Aria live is necessary for accessibility</td>
+<td>Use for status updates</td>
+</tr>
+<tr>
+<td>Panels that use a aria atomic</td>
+<td>Aria atomic is necessary for accessibility</td>
+<td>Use for live regions</td>
+</tr>
+<tr>
+<td>Panels that use a aria relevant</td>
+<td>Aria relevant is necessary for accessibility</td>
+<td>Use for live regions</td>
+</tr>
+<tr>
+<td>Panels that use a aria owns</td>
+<td>Aria owns is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria controls</td>
+<td>Aria controls is necessary for accessibility</td>
+<td>Use for tab panels</td>
+</tr>
+<tr>
+<td>Panels that use a aria flowto</td>
+<td>Aria flowto is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria details</td>
+<td>Aria details is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria error message</td>
+<td>Aria error message is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria keyshortcuts</td>
+<td>Aria keyshortcuts is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria roledescription</td>
+<td>Aria roledescription is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria braillelabel</td>
+<td>Aria braillelabel is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a aria brailleroledescription</td>
+<td>Aria brailleroledescription is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a role</td>
+<td>Role is necessary for accessibility</td>
+<td>Use for semantic roles</td>
+</tr>
+<tr>
+<td>Panels that use a tabindex</td>
+<td>Tabindex is necessary for keyboard navigation</td>
+<td>Use 0 for interactive, -1 for non-interactive</td>
+</tr>
+<tr>
+<td>Panels that use a title</td>
+<td>Title is not appropriate for tooltips</td>
+<td>Use tooltips instead</td>
+</tr>
+<tr>
+<td>Panels that use a lang</td>
+<td>Lang is necessary for i18n</td>
+<td>Use for language declaration</td>
+</tr>
+<tr>
+<td>Panels that use a dir</td>
+<td>Dir is necessary for RTL</td>
+<td>Use for direction</td>
+</tr>
+<tr>
+<td>Panels that use a translate</td>
+<td>Translate is okay for i18n</td>
+<td>Use no for brand names</td>
+</tr>
+<tr>
+<td>Panels that use a spellcheck</td>
+<td>Spellcheck is okay for text inputs</td>
+<td>Use false for code inputs</td>
+</tr>
+<tr>
+<td>Panels that use a contenteditable</td>
+<td>Contenteditable is not appropriate</td>
+<td>Use CodeMirror for editing</td>
+</tr>
+<tr>
+<td>Panels that use a draggable</td>
+<td>Draggable is okay for drag and drop</td>
+<td>Use for file reordering</td>
+</tr>
+<tr>
+<td>Panels that use a dropzone</td>
+<td>Dropzone is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a hidden</td>
+<td>Hidden is okay for conditional display</td>
+<td>Use for toggling visibility</td>
+</tr>
+<tr>
+<td>Panels that use a inert</td>
+<td>Inert is okay for modal overlays</td>
+<td>Use for blocking interaction</td>
+</tr>
+<tr>
+<td>Panels that use a popover</td>
+<td>Popover is okay for floating elements</td>
+<td>Use for dropdowns</td>
+</tr>
+<tr>
+<td>Panels that use a popovertarget</td>
+<td>Popovertarget is okay for popover triggers</td>
+<td>Use for popover buttons</td>
+</tr>
+<tr>
+<td>Panels that use a popovertargetaction</td>
+<td>Popovertargetaction is okay for popover triggers</td>
+<td>Use for popover actions</td>
+</tr>
+<tr>
+<td>Panels that use a command</td>
+<td>Command is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a commandfor</td>
+<td>Commandfor is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a itemscope</td>
+<td>Itemscope is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a itemtype</td>
+<td>Itemtype is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a itemprop</td>
+<td>Itemprop is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a itemref</td>
+<td>Itemref is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a itemid</td>
+<td>Itemid is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a enterkeyhint</td>
+<td>Enterkeyhint is okay for mobile</td>
+<td>Use for mobile keyboard</td>
+</tr>
+<tr>
+<td>Panels that use a inputmode</td>
+<td>Inputmode is okay for mobile</td>
+<td>Use for mobile keyboard</td>
+</tr>
+<tr>
+<td>Panels that use a virtualkeyboardpolicy</td>
+<td>Virtualkeyboardpolicy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a writingsuggestions</td>
+<td>Writingsuggestions is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a autocorrect</td>
+<td>Autocorrect is okay for text inputs</td>
+<td>Use off for code inputs</td>
+</tr>
+<tr>
+<td>Panels that use a autocapitalize</td>
+<td>Autocapitalize is okay for text inputs</td>
+<td>Use off for code inputs</td>
+</tr>
+<tr>
+<td>Panels that use a dirname</td>
+<td>Dirname is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a list</td>
+<td>List is okay for datalist</td>
+<td>Use for autocomplete</td>
+</tr>
+<tr>
+<td>Panels that use a accept</td>
+<td>Accept is okay for file inputs</td>
+<td>Use for file type filter</td>
+</tr>
+<tr>
+<td>Panels that use a capture</td>
+<td>Capture is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a webkitdirectory</td>
+<td>Webkitdirectory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a mozdirectory</td>
+<td>Mozdirectory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a directory</td>
+<td>Directory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a multiple</td>
+<td>Multiple is okay for file inputs</td>
+<td>Use for multi-file upload</td>
+</tr>
+<tr>
+<td>Panels that use a files</td>
+<td>Files is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a labels</td>
+<td>Labels is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a control</td>
+<td>Control is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a form</td>
+<td>Form is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a menu</td>
+<td>Menu is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a contextmenu</td>
+<td>Contextmenu is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a charset</td>
+<td>Charset is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a http equiv</td>
+<td>Http equiv is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a scheme</td>
+<td>Scheme is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a manifest</td>
+<td>Manifest is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a workertype</td>
+<td>Workertype is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a nonce</td>
+<td>Nonce is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a fetchpriority</td>
+<td>Fetchpriority is okay for performance</td>
+<td>Use for image loading</td>
+</tr>
+<tr>
+<td>Panels that use a blocking</td>
+<td>Blocking is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsrc</td>
+<td>Attributionsrc is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource</td>
+<td>Attributionsource is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceid</td>
+<td>Attributionsourceid is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepriority</td>
+<td>Attributionsourcepriority is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetype</td>
+<td>Attributionsourcetype is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceurl</td>
+<td>Attributionsourceurl is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcename</td>
+<td>Attributionsourcename is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedescription</td>
+<td>Attributionsourcedescription is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceicon</td>
+<td>Attributionsourceicon is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecolor</td>
+<td>Attributionsourcecolor is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecategory</td>
+<td>Attributionsourcecategory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetags</td>
+<td>Attributionsourcetags is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcerating</td>
+<td>Attributionsourcerating is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcereviews</td>
+<td>Attributionsourcereviews is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprice</td>
+<td>Attributionsourceprice is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecurrency</td>
+<td>Attributionsourcecurrency is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceavailability</td>
+<td>Attributionsourceavailability is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceshipping</td>
+<td>Attributionsourceshipping is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcereturns</td>
+<td>Attributionsourcereturns is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcewarranty</td>
+<td>Attributionsourcewarranty is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecondition</td>
+<td>Attributionsourcecondition is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceage</td>
+<td>Attributionsourceage is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcegender</td>
+<td>Attributionsourcegender is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesize</td>
+<td>Attributionsourcesize is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcematerial</td>
+<td>Attributionsourcematerial is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecolor</td>
+<td>Attributionsourcecolor is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepattern</td>
+<td>Attributionsourcepattern is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestyle</td>
+<td>Attributionsourcestyle is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcebrand</td>
+<td>Attributionsourcebrand is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemodel</td>
+<td>Attributionsourcemodel is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceserial</td>
+<td>Attributionsourceserial is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceupc</td>
+<td>Attributionsourceupc is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceean</td>
+<td>Attributionsourceean is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceisbn</td>
+<td>Attributionsourceisbn is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcempn</td>
+<td>Attributionsourcempn is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcegtin</td>
+<td>Attributionsourcegtin is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceasin</td>
+<td>Attributionsourceasin is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceidentifier</td>
+<td>Attributionsourceidentifier is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceurl</td>
+<td>Attributionsourceurl is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceimage</td>
+<td>Attributionsourceimage is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcevideo</td>
+<td>Attributionsourcevideo is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceaudio</td>
+<td>Attributionsourceaudio is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedocument</td>
+<td>Attributionsourcedocument is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecode</td>
+<td>Attributionsourcecode is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedata</td>
+<td>Attributionsourcedata is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceapi</td>
+<td>Attributionsourceapi is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceendpoint</td>
+<td>Attributionsourceendpoint is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemethod</td>
+<td>Attributionsourcemethod is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceheaders</td>
+<td>Attributionsourceheaders is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcebody</td>
+<td>Attributionsourcebody is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcequery</td>
+<td>Attributionsourcequery is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceparams</td>
+<td>Attributionsourceparams is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepath</td>
+<td>Attributionsourcepath is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefragment</td>
+<td>Attributionsourcefragment is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcehost</td>
+<td>Attributionsourcehost is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceport</td>
+<td>Attributionsourceport is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprotocol</td>
+<td>Attributionsourceprotocol is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceusername</td>
+<td>Attributionsourceusername is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepassword</td>
+<td>Attributionsourcepassword is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceref</td>
+<td>Attributionsourceref is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcescope</td>
+<td>Attributionsourcescope is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesecret</td>
+<td>Attributionsourcesecret is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetoken</td>
+<td>Attributionsourcetoken is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcekey</td>
+<td>Attributionsourcekey is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecert</td>
+<td>Attributionsourcecert is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcechain</td>
+<td>Attributionsourcechain is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceroot</td>
+<td>Attributionsourceroot is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceintermediate</td>
+<td>Attributionsourceintermediate is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceleaf</td>
+<td>Attributionsourceleaf is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceocsp</td>
+<td>Attributionsourceocsp is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecrl</td>
+<td>Attributionsourcecrl is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceaia</td>
+<td>Attributionsourceaia is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcescts</td>
+<td>Attributionsourcescts is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcect</td>
+<td>Attributionsourcect is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetimestamp</td>
+<td>Attributionsourcetimestamp is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesignature</td>
+<td>Attributionsourcesignature is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcehash</td>
+<td>Attributionsourcehash is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcealgorithm</td>
+<td>Attributionsourcealgorithm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesalt</td>
+<td>Attributionsourcesalt is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceiv</td>
+<td>Attributionsourceiv is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcekeylength</td>
+<td>Attributionsourcekeylength is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecurve</td>
+<td>Attributionsourcecurve is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceexponent</td>
+<td>Attributionsourceexponent is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemodulus</td>
+<td>Attributionsourcemodulus is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepublic</td>
+<td>Attributionsourcepublic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprivate</td>
+<td>Attributionsourceprivate is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepreshared</td>
+<td>Attributionsourcepreshared is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceshared</td>
+<td>Attributionsourceshared is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcegroup</td>
+<td>Attributionsourcegroup is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceparty</td>
+<td>Attributionsourceparty is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepeer</td>
+<td>Attributionsourcepeer is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemaster</td>
+<td>Attributionsourcemaster is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesession</td>
+<td>Attributionsourcesession is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceephemeral</td>
+<td>Attributionsourceephemeral is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestatic</td>
+<td>Attributionsourcestatic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedynamic</td>
+<td>Attributionsourcedynamic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemutable</td>
+<td>Attributionsourcemutable is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceimmutable</td>
+<td>Attributionsourceimmutable is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceunique</td>
+<td>Attributionsourceunique is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecommon</td>
+<td>Attributionsourcecommon is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcegeneric</td>
+<td>Attributionsourcegeneric is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcespecific</td>
+<td>Attributionsourcespecific is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcelocal</td>
+<td>Attributionsourcelocal is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceglobal</td>
+<td>Attributionsourceglobal is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceuniversal</td>
+<td>Attributionsourceuniversal is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceabsolute</td>
+<td>Attributionsourceabsolute is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcerelative</td>
+<td>Attributionsourcerelative is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecanonical</td>
+<td>Attributionsourcecanonical is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepermanent</td>
+<td>Attributionsourcepermanent is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetemporary</td>
+<td>Attributionsourcetemporary is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcevolatile</td>
+<td>Attributionsourcevolatile is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepersistent</td>
+<td>Attributionsourcepersistent is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedurable</td>
+<td>Attributionsourcedurable is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetransient</td>
+<td>Attributionsourcetransient is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceephemeral</td>
+<td>Attributionsourceephemeral is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestable</td>
+<td>Attributionsourcestable is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefragile</td>
+<td>Attributionsourcefragile is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcerobust</td>
+<td>Attributionsourcerobust is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceresilient</td>
+<td>Attributionsourceresilient is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefault tolerant</td>
+<td>Attributionsourcefault tolerant is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcehigh availability</td>
+<td>Attributionsourcehigh availability is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceload balanced</td>
+<td>Attributionsourceload balanced is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcescaled</td>
+<td>Attributionsourcescaled is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceelastic</td>
+<td>Attributionsourceelastic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceauto</td>
+<td>Attributionsourceauto is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemanual</td>
+<td>Attributionsourcemanual is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprogrammatic</td>
+<td>Attributionsourceprogrammatic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedeclarative</td>
+<td>Attributionsourcedeclarative is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceimperative</td>
+<td>Attributionsourceimperative is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefunctional</td>
+<td>Attributionsourcefunctional is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceobject oriented</td>
+<td>Attributionsourceobject oriented is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprocedural</td>
+<td>Attributionsourceprocedural is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceevent driven</td>
+<td>Attributionsourceevent driven is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemessage passing</td>
+<td>Attributionsourcemessage passing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceshared memory</td>
+<td>Attributionsourceshared memory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedistributed</td>
+<td>Attributionsourcedistributed is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceparallel</td>
+<td>Attributionsourceparallel is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceconcurrent</td>
+<td>Attributionsourceconcurrent is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceasync</td>
+<td>Attributionsourceasync is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesync</td>
+<td>Attributionsourcesync is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceblocking</td>
+<td>Attributionsourceblocking is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcenon blocking</td>
+<td>Attributionsourcenon blocking is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource reactive</td>
+<td>Attributionsource reactive is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceobserver</td>
+<td>Attributionsourceobserver is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepublisher</td>
+<td>Attributionsourcepublisher is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesubscriber</td>
+<td>Attributionsourcesubscriber is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceproducer</td>
+<td>Attributionsourceproducer is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceconsumer</td>
+<td>Attributionsourceconsumer is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcequeue</td>
+<td>Attributionsourcequeue is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetopic</td>
+<td>Attributionsourcetopic is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcechannel</td>
+<td>Attributionsourcechannel is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcebus</td>
+<td>Attributionsourcebus is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepipe</td>
+<td>Attributionsourcepipe is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestream</td>
+<td>Attributionsourcestream is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceflow</td>
+<td>Attributionsourceflow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcepipeline</td>
+<td>Attributionsourcepipeline is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceworkflow</td>
+<td>Attributionsourceworkflow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceorchestration</td>
+<td>Attributionsourceorchestration is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcechoreography</td>
+<td>Attributionsourcechoreography is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesaga</td>
+<td>Attributionsourcesaga is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecompensation</td>
+<td>Attributionsourcecompensation is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceoutbox</td>
+<td>Attributionsourceoutbox is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceinbox</td>
+<td>Attributionsourceinbox is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceevent sourcing</td>
+<td>Attributionsourceevent sourcing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecqrs</td>
+<td>Attributionsourcecqrs is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceddd</td>
+<td>Attributionsourceddd is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcehexagonal</td>
+<td>Attributionsourcehexagonal is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceonion</td>
+<td>Attributionsourceonion is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceclean</td>
+<td>Attributionsourceclean is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesolid</td>
+<td>Attributionsourcesolid is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedry</td>
+<td>Attributionsourcedry is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcekiss</td>
+<td>Attributionsourcekiss is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceyagni</td>
+<td>Attributionsourceyagni is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceboyscout</td>
+<td>Attributionsourceboyscout is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcegrasp</td>
+<td>Attributionsourcegrasp is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefactory</td>
+<td>Attributionsourcefactory is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcesingleton</td>
+<td>Attributionsourcesingleton is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceprototype</td>
+<td>Attributionsourceprototype is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcebuilder</td>
+<td>Attributionsourcebuilder is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceadapter</td>
+<td>Attributionsourceadapter is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcebridge</td>
+<td>Attributionsourcebridge is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecomposite</td>
+<td>Attributionsourcecomposite is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcedecorator</td>
+<td>Attributionsourcedecorator is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcefacade</td>
+<td>Attributionsourcefacade is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceflyweight</td>
+<td>Attributionsourceflyweight is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceproxy</td>
+<td>Attributionsourceproxy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcechain</td>
+<td>Attributionsourcechain is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcecommand</td>
+<td>Attributionsourcecommand is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceinterpreter</td>
+<td>Attributionsourceinterpreter is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceiterator</td>
+<td>Attributionsourceiterator is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcemediator</td>
+<td>Attributionsourcemediator is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcememento</td>
+<td>Attributionsourcememento is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourceobserver</td>
+<td>Attributionsourceobserver is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestate</td>
+<td>Attributionsourcestate is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcestrategy</td>
+<td>Attributionsourcestrategy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcetemplate</td>
+<td>Attributionsourcetemplate is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsourcevisitor</td>
+<td>Attributionsourcevisitor is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource null</td>
+<td>Attributionsource null is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource undefined</td>
+<td>Attributionsource undefined is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource NaN</td>
+<td>Attributionsource NaN is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource Infinity</td>
+<td>Attributionsource Infinity is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource true</td>
+<td>Attributionsource true is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource false</td>
+<td>Attributionsource false is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource yes</td>
+<td>Attributionsource yes is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource no</td>
+<td>Attributionsource no is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource on</td>
+<td>Attributionsource on is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource off</td>
+<td>Attributionsource off is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource enabled</td>
+<td>Attributionsource enabled is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource disabled</td>
+<td>Attributionsource disabled is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource active</td>
+<td>Attributionsource active is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource inactive</td>
+<td>Attributionsource inactive is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource visible</td>
+<td>Attributionsource visible is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource hidden</td>
+<td>Attributionsource hidden is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource shown</td>
+<td>Attributionsource shown is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource collapsed</td>
+<td>Attributionsource collapsed is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource expanded</td>
+<td>Attributionsource expanded is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource open</td>
+<td>Attributionsource open is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource closed</td>
+<td>Attributionsource closed is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource locked</td>
+<td>Attributionsource locked is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource unlocked</td>
+<td>Attributionsource unlocked is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource secured</td>
+<td>Attributionsource secured is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource insecure</td>
+<td>Attributionsource insecure is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource valid</td>
+<td>Attributionsource valid is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource invalid</td>
+<td>Attributionsource invalid is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource correct</td>
+<td>Attributionsource correct is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource incorrect</td>
+<td>Attributionsource incorrect is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource right</td>
+<td>Attributionsource right is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource wrong</td>
+<td>Attributionsource wrong is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource success</td>
+<td>Attributionsource success is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource failure</td>
+<td>Attributionsource failure is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource pass</td>
+<td>Attributionsource pass is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource fail</td>
+<td>Attributionsource fail is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource error</td>
+<td>Attributionsource error is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource warning</td>
+<td>Attributionsource warning is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource info</td>
+<td>Attributionsource info is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource debug</td>
+<td>Attributionsource debug is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource trace</td>
+<td>Attributionsource trace is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource log</td>
+<td>Attributionsource log is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource audit</td>
+<td>Attributionsource audit is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource metric</td>
+<td>Attributionsource metric is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource telemetry</td>
+<td>Attributionsource telemetry is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource analytics</td>
+<td>Attributionsource analytics is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource monitoring</td>
+<td>Attributionsource monitoring is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource observability</td>
+<td>Attributionsource observability is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource tracing</td>
+<td>Attributionsource tracing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource profiling</td>
+<td>Attributionsource profiling is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource benchmarking</td>
+<td>Attributionsource benchmarking is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource load testing</td>
+<td>Attributionsource load testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource stress testing</td>
+<td>Attributionsource stress testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource chaos testing</td>
+<td>Attributionsource chaos testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource fuzz testing</td>
+<td>Attributionsource fuzz testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource property testing</td>
+<td>Attributionsource property testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource mutation testing</td>
+<td>Attributionsource mutation testing is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource static analysis</td>
+<td>Attributionsource static analysis is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dynamic analysis</td>
+<td>Attributionsource dynamic analysis is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource data flow</td>
+<td>Attributionsource data flow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource control flow</td>
+<td>Attributionsource control flow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource call graph</td>
+<td>Attributionsource call graph is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dependency graph</td>
+<td>Attributionsource dependency graph is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource class diagram</td>
+<td>Attributionsource class diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource sequence diagram</td>
+<td>Attributionsource sequence diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource state diagram</td>
+<td>Attributionsource state diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource activity diagram</td>
+<td>Attributionsource activity diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource component diagram</td>
+<td>Attributionsource component diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource deployment diagram</td>
+<td>Attributionsource deployment diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource network diagram</td>
+<td>Attributionsource network diagram is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource entity relationship</td>
+<td>Attributionsource entity relationship is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource data model</td>
+<td>Attributionsource data model is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource schema</td>
+<td>Attributionsource schema is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource ontology</td>
+<td>Attributionsource ontology is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource taxonomy</td>
+<td>Attributionsource taxonomy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource classification</td>
+<td>Attributionsource classification is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource categorization</td>
+<td>Attributionsource categorization is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource tagging</td>
+<td>Attributionsource tagging is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource labeling</td>
+<td>Attributionsource labeling is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource annotation</td>
+<td>Attributionsource annotation is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource markup</td>
+<td>Attributionsource markup is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource metadata</td>
+<td>Attributionsource metadata is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource microdata</td>
+<td>Attributionsource microdata is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource microformat</td>
+<td>Attributionsource microformat is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource rdfa</td>
+<td>Attributionsource rdfa is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource json ld</td>
+<td>Attributionsource json ld is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource schema.org</td>
+<td>Attributionsource schema.org is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource open graph</td>
+<td>Attributionsource open graph is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource twitter card</td>
+<td>Attributionsource twitter card is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource oembed</td>
+<td>Attributionsource oembed is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource iframely</td>
+<td>Attributionsource iframely is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource embedly</td>
+<td>Attributionsource embedly is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource noembed</td>
+<td>Attributionsource noembed is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource amp</td>
+<td>Attributionsource amp is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource instant articles</td>
+<td>Attributionsource instant articles is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource apple news</td>
+<td>Attributionsource apple news is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource flipboard</td>
+<td>Attributionsource flipboard is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource medium</td>
+<td>Attributionsource medium is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dev.to</td>
+<td>Attributionsource dev.to is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource hashnode</td>
+<td>Attributionsource hashnode is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource substack</td>
+<td>Attributionsource substack is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource ghost</td>
+<td>Attributionsource ghost is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource wordpress</td>
+<td>Attributionsource wordpress is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource drupal</td>
+<td>Attributionsource drupal is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource joomla</td>
+<td>Attributionsource joomla is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource magento</td>
+<td>Attributionsource magento is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource shopify</td>
+<td>Attributionsource shopify is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource squarespace</td>
+<td>Attributionsource squarespace is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource wix</td>
+<td>Attributionsource wix is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource weebly</td>
+<td>Attributionsource weebly is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource webflow</td>
+<td>Attributionsource webflow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource bubble</td>
+<td>Attributionsource bubble is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource retool</td>
+<td>Attributionsource retool is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource appsmith</td>
+<td>Attributionsource appsmith is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource tooljet</td>
+<td>Attributionsource tooljet is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource budibase</td>
+<td>Attributionsource budibase is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource nocodb</td>
+<td>Attributionsource nocodb is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource baserow</td>
+<td>Attributionsource baserow is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource airtable</td>
+<td>Attributionsource airtable is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource notion</td>
+<td>Attributionsource notion is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource confluence</td>
+<td>Attributionsource confluence is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource sharepoint</td>
+<td>Attributionsource sharepoint is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dropbox</td>
+<td>Attributionsource dropbox is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource google drive</td>
+<td>Attributionsource google drive is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource one drive</td>
+<td>Attributionsource one drive is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource box</td>
+<td>Attributionsource box is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource icloud</td>
+<td>Attributionsource icloud is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource nextcloud</td>
+<td>Attributionsource nextcloud is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource owncloud</td>
+<td>Attributionsource owncloud is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource seafile</td>
+<td>Attributionsource seafile is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource pydio</td>
+<td>Attributionsource pydio is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource filerun</td>
+<td>Attributionsource filerun is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource filebrowser</td>
+<td>Attributionsource filebrowser is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource cloudcmd</td>
+<td>Attributionsource cloudcmd is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource webd</td>
+<td>Attributionsource webd is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource droppy</td>
+<td>Attributionsource droppy is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource filegator</td>
+<td>Attributionsource filegator is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource filestash</td>
+<td>Attributionsource filestash is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource kodbox</td>
+<td>Attributionsource kodbox is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource kodexplorer</td>
+<td>Attributionsource kodexplorer is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dzzoffice</td>
+<td>Attributionsource dzzoffice is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource kodcloud</td>
+<td>Attributionsource kodcloud is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource oa</td>
+<td>Attributionsource oa is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource crm</td>
+<td>Attributionsource crm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource erp</td>
+<td>Attributionsource erp is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource scm</td>
+<td>Attributionsource scm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource plm</td>
+<td>Attributionsource plm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource mes</td>
+<td>Attributionsource mes is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource wms</td>
+<td>Attributionsource wms is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource tms</td>
+<td>Attributionsource tms is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource oms</td>
+<td>Attributionsource oms is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource dms</td>
+<td>Attributionsource dms is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource ecm</td>
+<td>Attributionsource ecm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource bpm</td>
+<td>Attributionsource bpm is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource rpa</td>
+<td>Attributionsource rpa is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource ide</td>
+<td>Attributionsource ide is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource editor</td>
+<td>Attributionsource editor is not appropriate</td>
+<td>Do not use</td>
+</tr>
+<tr>
+<td>Panels that use a attributionsource ide</td>
+<td>Attributionsource ide is not appropriate</td>
+<td>Do not use</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>14. Language and Tone</h2>
+<h3>14.1 Microcopy Rules</h3>
+<ol>
+<li>No exclamation marks. Periods end statements. No sentence needs enthusiasm.</li>
+<li>No conversational filler. &quot;I will&quot;, &quot;Let me&quot;, &quot;I&#39;d be happy to&quot;, &quot;Just a moment&quot; are all banned. Use &quot;Loading...&quot;, &quot;File saved.&quot;, &quot;3 tests passed.&quot;</li>
+<li>No emojis. Icons are for visual communication. Text is for reading. Never mix the two.</li>
+<li>No em dashes. Use hyphens for compound words, en dashes for ranges, periods for clause separation.</li>
+<li>Sentence case everywhere. &quot;Open file&quot;, not &quot;Open File&quot;. &quot;New terminal&quot;, not &quot;New Terminal&quot;.</li>
+<li>No contractions. &quot;Do not&quot; instead of &quot;Don&#39;t&quot;. &quot;Cannot&quot; instead of &quot;Can&#39;t&quot;. Contractions add noise in a tool interface.</li>
+<li>No filler adverbs. &quot;Simply&quot;, &quot;just&quot;, &quot;easily&quot;, &quot;quickly&quot; are banned. If the action is simple, the interface should make it obvious without saying so.</li>
+<li>Error messages state facts. &quot;Connection failed: ECONNREFUSED localhost:7820.&quot; not &quot;Oops! We couldn&#39;t connect to the server. Please try again later.&quot;</li>
+<li>Success messages are terse. &quot;Committed: 3 files.&quot; not &quot;Your commit was successful! Great job!&quot;</li>
+<li>Warning messages state consequences. &quot;This will discard 3 unsaved changes.&quot; not &quot;Are you sure you want to proceed?&quot;</li>
+<li>Button labels are verbs. &quot;Save&quot;, &quot;Delete&quot;, &quot;Commit&quot;, &quot;Push&quot;, not &quot;Save Changes&quot; or &quot;Delete File&quot;.</li>
+<li>Menu labels are verbs or nouns. &quot;Open file&quot;, &quot;New terminal&quot;, &quot;Git status&quot;, not &quot;Open File...&quot; or &quot;New Terminal...&quot;.</li>
+<li>No ellipsis in labels. &quot;Open file&quot; not &quot;Open file...&quot;. Ellipses are for truncated text only.</li>
+<li>No &quot;please&quot; or &quot;thank you&quot; in interface copy. The interface is a tool, not a service interaction.</li>
+<li>No brand names in generic contexts. &quot;Runyard settings&quot; not &quot;Runyard Settings&quot;. &quot;Runyard is loading...&quot; is acceptable for the welcome screen only.</li>
+</ol>
+<h3>14.2 Error Message Template</h3>
+<p>All error messages follow this template:</p>
+<pre><code>[Operation failed]: [Specific error] [Context] [Action]
+
+Examples:
+- &quot;Connection failed: ECONNREFUSED localhost:7820. Check the server is running.&quot;
+- &quot;File save failed: Permission denied on /path/to/file. Retry with elevated permissions.&quot;
+- &quot;Git commit failed: Nothing to commit. Stage changes before committing.&quot;
+- &quot;LSP start failed: rust-analyzer not found in PATH. Install rust-analyzer or set path override.&quot;
+</code></pre>
+<h3>14.3 Status Message Template</h3>
+<p>All status messages follow this template:</p>
+<pre><code>[State]: [Metric or detail]
+
+Examples:
+- &quot;Connected: dev-server (192.168.1.100)&quot;
+- &quot;Git: main branch, 3 ahead, 1 behind&quot;
+- &quot;LSP: TypeScript ready, Python starting&quot;
+- &quot;Terminal: bash, 3 sessions&quot;
+</code></pre>
+<hr>
+<h2>15. File and Code Structure</h2>
+<h3>15.1 CSS Architecture</h3>
+<p>All styles are inline within Svelte components using <code>&lt;style&gt;</code> tags. No external CSS files except the global <code>global.css</code>.</p>
+<ul>
+<li>Component-level styles use the component&#39;s class name as the root selector (e.g., <code>.editor-panel</code> for EditorPanel.svelte).</li>
+<li>No global CSS selectors in component files. All component selectors are scoped by the component class.</li>
+<li>CSS custom properties are the only source of color values. Never hardcode hex colors in component CSS.</li>
+<li>CSS custom properties are defined in <code>global.css</code> only. No component defines new CSS properties.</li>
+<li>If a new token is needed, add it to <code>global.css</code> and document it in this specification before using it.</li>
+</ul>
+<h3>15.2 Component File Structure</h3>
+<p>Each component follows this structure:</p>
+<pre><code class="language-svelte">&lt;script lang=&quot;ts&quot;&gt;
+  // 1. Imports (type imports first, then value imports)
+  // 2. Type definitions (interfaces, types)
+  // 3. Props declaration with $props()
+  // 4. State with $state()
+  // 5. Derived state with $derived()
+  // 6. Effects with $effect()
+  // 7. Functions (event handlers, helpers)
+  // 8. Lifecycle (onMount, onDestroy)
+&lt;/script&gt;
+
+&lt;!-- Template: minimal DOM, semantic HTML --&gt;
+
+&lt;style&gt;
+  /* Scoped styles using component root class */
+  .component-name { ... }
+  .component-name .child { ... }
+&lt;/style&gt;
+</code></pre>
+<h3>15.3 Naming Conventions</h3>
+<ul>
+<li>Components: PascalCase, descriptive (e.g., <code>EditorPanel.svelte</code>, <code>GitStatusBar.svelte</code>)</li>
+<li>CSS classes: kebab-case, component-prefixed (e.g., <code>editor-panel</code>, <code>editor-panel-content</code>)</li>
+<li>CSS custom properties: kebab-case with semantic names (e.g., <code>--bg-secondary</code>, <code>--text-error</code>)</li>
+<li>Variables: camelCase for TS, snake_case for Rust (e.g., <code>filePath</code>, <code>terminal_id</code>)</li>
+<li>Event names: <code>event:subject</code> format (e.g., <code>fs:changed</code>, <code>terminal:output</code>, <code>lsp:message</code>)</li>
+<li>Command IDs: <code>category.action</code> format (e.g., <code>file.open</code>, <code>terminal.new</code>, <code>git.commit</code>)</li>
+</ul>
+<hr>
+<h2>16. Research Citations</h2>
+<ul>
+<li>Nielsen Norman Group: &quot;The Proliferation and Problem of the Sparkles Icon&quot; (2024). Research shows the sparkles icon does not communicate &quot;AI&quot; to users and is ambiguous across contexts.</li>
+<li>Sailop Blog: &quot;90+ AI Design Patterns to Avoid&quot; (2026). Catalog of AI-generated frontend fingerprints including #3B82F6 primaries, backdrop-blur, fade-up-on-scroll, and gradient text.</li>
+<li>Wesley Wei, &quot;AI Software Is Wearing A Costume&quot; (2026). Analysis of performative UI in AI tools: glowing command boxes, fake agent timelines, mock terminals, and gradient text as trust cosplay rather than functional design.</li>
+<li>Zed Industries: Theme Builder documentation. 200+ color tokens across 16 UI categories and 10 syntax categories for visual unity.</li>
+<li>VS Code: Theme Color Reference. Standard base tokens with localized component overrides for consistent visual prioritization.</li>
+<li>WCAG 2.1: Minimum 4.5:1 contrast ratio for normal text (AA), 7:1 for AAA.</li>
+<li>APCA (Advanced Perceptual Contrast Algorithm): Lc 90 for body text, Lc 60 minimum for secondary text in dark mode.</li>
+<li>Josh Clark, &quot;Your Sparkles Are Fizzling&quot; (Big Medium). The &quot;pixie dust&quot; approach treats complex machine learning as magic while obscuring risks.</li>
+<li>Roo Code Issue #5037: Chat bubble system causes massive scrolling fatigue and renders long code snippets unreadable without manual collapse features.</li>
+<li>Anthropic Issue #63804: Large markdown paste causes conversation overlap in chat bubbles, confirming the architectural failure of bubble layouts for code.</li>
+<li>David Reis, &quot;AI Coding Tools Are Stuck in 2007&#39;s Dev UX&quot; (2026). Analysis of how AI tools still use outdated interaction patterns.</li>
+<li>Emily Campbell, &quot;AI UX Patterns: Iconography&quot; (ShapeofAI). The shapeof.ai pattern library for AI iconography conventions.</li>
+<li>Built In: &quot;The New Skeuomorphism: How AI Makes Bad Design Look Good Enough&quot;. Analysis of how AI-generated designs create surface-level polish without functional depth.</li>
+</ul>
+<hr>
+<h2>17. Checklist for New Components</h2>
+<p>Before shipping any new UI component, verify:</p>
+<ul>
+<li><input disabled="" type="checkbox"> All colors use CSS custom properties from the token system, never hardcoded hex values.</li>
+<li><input disabled="" type="checkbox"> No gradient backgrounds, gradient text, or gradient borders.</li>
+<li><input disabled="" type="checkbox"> No backdrop blur, frosted glass, or glassmorphism effects.</li>
+<li><input disabled="" type="checkbox"> No box-shadow glows or neon effects.</li>
+<li><input disabled="" type="checkbox"> No border-radius on code, data, or file tree elements (0px radius for structural content).</li>
+<li><input disabled="" type="checkbox"> No emojis in any text or label.</li>
+<li><input disabled="" type="checkbox"> No em dashes in any text; use hyphens, en dashes, or periods.</li>
+<li><input disabled="" type="checkbox"> No exclamation marks in any text.</li>
+<li><input disabled="" type="checkbox"> No conversational filler (&quot;I will&quot;, &quot;Let me&quot;, &quot;Just&quot;, &quot;Simply&quot;).</li>
+<li><input disabled="" type="checkbox"> No sparkles, magic wands, or robot icons for AI features.</li>
+<li><input disabled="" type="checkbox"> No animated loading spinners with gradient strokes.</li>
+<li><input disabled="" type="checkbox"> No shimmer or skeleton wave animations.</li>
+<li><input disabled="" type="checkbox"> No pulsing, breathing, or glowing animations.</li>
+<li><input disabled="" type="checkbox"> No bounce, spring, or elastic easing.</li>
+<li><input disabled="" type="checkbox"> No 3D transforms, parallax, or depth effects.</li>
+<li><input disabled="" type="checkbox"> No chat bubbles for code or structured data.</li>
+<li><input disabled="" type="checkbox"> No mock IDE elements, fake terminals, or simulated code.</li>
+<li><input disabled="" type="checkbox"> No &quot;Are you sure?&quot; language; state consequences directly.</li>
+<li><input disabled="" type="checkbox"> No &quot;Something went wrong&quot; or &quot;Oops!&quot; error messages; show exact errors.</li>
+<li><input disabled="" type="checkbox"> All text is sentence case, not title case.</li>
+<li><input disabled="" type="checkbox"> All interactive elements are keyboard accessible with visible focus indicators.</li>
+<li><input disabled="" type="checkbox"> All icons have aria-label or aria-hidden.</li>
+<li><input disabled="" type="checkbox"> All animations respect prefers-reduced-motion.</li>
+<li><input disabled="" type="checkbox"> All text meets APCA Lc 90 for body text, Lc 60 for secondary text.</li>
+<li><input disabled="" type="checkbox"> Component styles are scoped and do not use global selectors.</li>
+<li><input disabled="" type="checkbox"> No new CSS custom properties are defined in component files; all tokens are in global.css.</li>
+</ul>
+<hr>
+<p><em>End of specification. Last updated: 2026-07-10. Version: 2.0.</em></p>
+
+<script>
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && window.parent !== window) {
+    window.parent.postMessage({ type: 'close-fullscreen' }, '*');
+  }
+});
+</script>
+<!-- broken-img-handler -->
+<script>
+(function(){
+  if(window.__brokenImgHandler)return;
+  window.__brokenImgHandler=true;
+  var MAX=5,DELAYS=[2000,4000,8000,16000,32000];
+  document.addEventListener('error',function(e){
+    var img=e.target;
+    if(!img||img.tagName!=='IMG')return;
+    var liveSrc=img.getAttribute('src');
+    var src=img.dataset.haOriginalSrc||liveSrc;
+    if(!src)return;
+    if(img.dataset.haOriginalSrc&&liveSrc&&liveSrc!==img.dataset.haOriginalSrc&&liveSrc.indexOf('_r=')<0){src=liveSrc;img.dataset.haOriginalSrc=src;img.dataset.haRetryCount='0'}
+    else if(!img.dataset.haOriginalSrc){img.dataset.haOriginalSrc=src}
+    var attempt=parseInt(img.dataset.haRetryCount||'0',10);
+    if(img.dataset.haPhId){var old=document.getElementById(img.dataset.haPhId);if(old)old.remove()}
+    var ph=document.createElement('div');
+    ph.className='ha-img-placeholder'+(attempt>=MAX?' ha-failed':'');
+    ph.id='ha-ph-'+Math.random().toString(36).slice(2,9);
+    var w=img.getAttribute('width');var h=img.getAttribute('height');
+    if(w)ph.style.width=w+(isNaN(Number(w))?'':'px');
+    else if(img.style.width)ph.style.width=img.style.width;
+    else if(img.width>1)ph.style.width=img.width+'px';
+    if(h)ph.style.height=h+(isNaN(Number(h))?'':'px');
+    else if(img.style.height)ph.style.height=img.style.height;
+    else if(img.height>1)ph.style.height=img.height+'px';
+    ph.textContent=attempt>=MAX?'Image unavailable':'Loading image\u2026';
+    img.dataset.haPhId=ph.id;
+    if(img.dataset.haOrigDisplay==null)img.dataset.haOrigDisplay=img.style.display||'';
+    img.style.display='none';
+    img.insertAdjacentElement('afterend',ph);
+    if(attempt<MAX){
+      img.dataset.haRetryCount=String(attempt+1);
+      setTimeout(function(){
+        if(!img.isConnected)return;
+        if(img.dataset.haOriginalSrc!==src)return;
+        if(img.complete&&img.naturalWidth>0)return;
+        var curSrc=img.getAttribute('src');
+        if(curSrc&&curSrc.indexOf(src)!==0)return;
+        var fresh=src+(src.indexOf('?')>=0?'&':'?')+'_r='+(attempt+1)+'_'+Date.now();
+        img.src=fresh;
+      },DELAYS[attempt]);
+    }
+  },true);
+  document.addEventListener('load',function(e){
+    var img=e.target;
+    if(!img||img.tagName!=='IMG')return;
+    if(img.dataset.haPhId){
+      var ph=document.getElementById(img.dataset.haPhId);
+      if(ph)ph.remove();
+      delete img.dataset.haPhId;
+      img.style.display=img.dataset.haOrigDisplay||'';
+      delete img.dataset.haOrigDisplay;
+      delete img.dataset.haOriginalSrc;
+      delete img.dataset.haRetryCount;
+    }
+  },true);
+})();
+</script>
+</body>
+</html>

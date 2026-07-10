@@ -68,8 +68,9 @@ pub fn get_media_dir() -> PathBuf {
 pub fn init_db() -> SqlResult<()> {
     let conn = Connection::open(get_db_path())?;
     
-    // Enable WAL mode
-    conn.execute("PRAGMA journal_mode=WAL;", [])?;
+    // Enable WAL mode — pragma_update is required here because
+    // PRAGMA journal_mode returns a result row; conn.execute() would throw ExecuteReturnedResults.
+    conn.pragma_update(None, "journal_mode", "WAL")?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS conversations (

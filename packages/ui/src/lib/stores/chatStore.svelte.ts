@@ -170,11 +170,11 @@ class ChatStore {
 
   // ── Tab Management ──────────────────────────────────────────────────────────
 
-  openConversationInTab(id: string) {
+  async openConversationInTab(id: string) {
     if (!this.conversationTabs.includes(id)) {
       this.conversationTabs = [...this.conversationTabs, id];
     }
-    this.selectConversation(id);
+    await this.selectConversation(id);
   }
 
   async closeConversationTab(id: string) {
