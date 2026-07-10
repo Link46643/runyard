@@ -248,6 +248,31 @@ class ChatStore {
     }
   }
 
+  async deleteMessage(id: string) {
+    if (!this.activeConversationId) return;
+    try {
+      await invoke("chat_message_delete", { id, conversationId: this.activeConversationId });
+      this.messages = this.messages.filter((m) => m.id !== id);
+      this.conversations = this.conversations.map((c) =>
+        c.id === this.activeConversationId ? { ...c, message_count: Math.max(0, c.message_count - 1) } : c
+      );
+    } catch (e) {
+      console.error("[ChatStore] Failed to delete message", e);
+    }
+  }
+
+  // ── Session-scoped permission approvals (not persisted - cleared on reload) ──
+
+  sessionApprovedTools = $state<Set<string>>(new Set());
+
+  isApprovedForSession(toolId: string, action: string): boolean {
+    return this.sessionApprovedTools.has(`${toolId}::${action}`);
+  }
+
+  approveForSession(toolId: string, action: string) {
+    this.sessionApprovedTools = new Set(this.sessionApprovedTools).add(`${toolId}::${action}`);
+  }
+
   async searchMessages(query: string): Promise<Message[]> {
     try {
       return await invoke<Message[]>("chat_search", { query });

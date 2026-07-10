@@ -1,18 +1,22 @@
 <script lang="ts">
-  import type { Message } from "@runyard/common";
-  import { Copy, Check, Pencil, GitBranch, Pin, PinOff } from "lucide-svelte";
+  import type { ContentBlock, Message } from "@runyard/common";
+  import { Copy, Check, Pencil, GitBranch, Pin, PinOff, Trash2 } from "lucide-svelte";
   import ContentBlockRenderer from "./ContentBlockRenderer.svelte";
   import { chatStore } from "../../stores/chatStore.svelte.js";
+  import Modal from "../../Modal.svelte";
 
   let { message, onOpenFile }: { message: Message; onOpenFile?: (path: string) => void } = $props();
 
   let editing = $state(false);
   let editText = $state("");
   let copied = $state(false);
+  let showDeleteModal = $state(false);
 
   const roleLabel = $derived(
     message.role === "user" ? "You" : message.role === "system" ? "System" : "Assistant"
   );
+
+  const isForkPoint = $derived(chatStore.branches.some((b) => b.message_id === message.id));
 
   function relativeTime(ts: number): string {
     const diffMs = Date.now() - ts;
@@ -66,12 +70,32 @@
   async function togglePin() {
     await chatStore.setMessagePinned(message.id, !message.is_pinned);
   }
+
+  async function confirmDelete() {
+    await chatStore.deleteMessage(message.id);
+    showDeleteModal = false;
+  }
+
+  async function explainCode(code: string, language: string) {
+    await chatStore.sendMessage([{ type: "text", text: `Explain this code:\n\n\`\`\`${language}\n${code}\n\`\`\`` }]);
+  }
+
+  async function decidePermission(block: ContentBlock, approved: boolean, forSession = false) {
+    if (block.type !== "permission_request") return;
+    const updatedContent = message.content.map((b) =>
+      b === block ? { ...b, approved, approved_for_session: forSession || undefined } : b
+    );
+    await chatStore.updateMessage(message.id, updatedContent);
+  }
 </script>
 
 <div class="message" class:is-user={message.role === "user"} class:is-pinned={message.is_pinned}>
   <div class="message-meta">
     <span class="role-label">{roleLabel}</span>
     <span class="timestamp" title={new Date(message.created_at).toLocaleString()}>{relativeTime(message.created_at)}</span>
+    {#if isForkPoint}
+      <span class="fork-indicator" title="Branched from this message"><GitBranch size={11} strokeWidth={1.5} /></span>
+    {/if}
     <div class="spacer"></div>
     <div class="message-actions">
       <button class="action-btn" onclick={copyMessage} title="Copy">
@@ -84,6 +108,7 @@
       <button class="action-btn" onclick={togglePin} title={message.is_pinned ? "Unpin" : "Pin"}>
         {#if message.is_pinned}<PinOff size={14} strokeWidth={1.5} />{:else}<Pin size={14} strokeWidth={1.5} />{/if}
       </button>
+      <button class="action-btn" onclick={() => (showDeleteModal = true)} title="Delete"><Trash2 size={14} strokeWidth={1.5} /></button>
     </div>
   </div>
 
@@ -97,10 +122,25 @@
     </div>
   {:else}
     <div class="message-content">
-      <ContentBlockRenderer content={message.content} {onOpenFile} />
+      <ContentBlockRenderer
+        content={message.content}
+        {onOpenFile}
+        onExplainCode={explainCode}
+        onPermissionDecision={decidePermission}
+      />
     </div>
   {/if}
 </div>
+
+<Modal
+  bind:show={showDeleteModal}
+  title="Delete message"
+  message="This will delete this message permanently."
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  onConfirm={confirmDelete}
+  onCancel={() => (showDeleteModal = false)}
+/>
 
 <style>
   .message {
@@ -127,6 +167,10 @@
   }
   .timestamp {
     font-size: var(--text-xs);
+    color: var(--text-tertiary);
+  }
+  .fork-indicator {
+    display: flex;
     color: var(--text-tertiary);
   }
   .spacer {

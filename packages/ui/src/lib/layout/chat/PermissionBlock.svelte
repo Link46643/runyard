@@ -1,7 +1,17 @@
 <script lang="ts">
   import type { PermissionBlock } from "@runyard/common";
+  import { chatStore } from "../../stores/chatStore.svelte.js";
 
-  let { block, onDecide }: { block: PermissionBlock; onDecide?: (approved: boolean) => void } = $props();
+  let { block, onDecide }: { block: PermissionBlock; onDecide?: (approved: boolean, forSession?: boolean) => void } = $props();
+
+  let alreadyApprovedForSession = $derived(chatStore.isApprovedForSession(block.tool_id, block.action));
+
+  function decide(approved: boolean, forSession = false) {
+    if (forSession && approved) {
+      chatStore.approveForSession(block.tool_id, block.action);
+    }
+    onDecide?.(approved, forSession);
+  }
 </script>
 
 <div class="permission-block">
@@ -12,12 +22,15 @@
   </div>
   {#if block.approved === null}
     <div class="permission-actions">
-      <button class="btn-primary" onclick={() => onDecide?.(true)}>Approve</button>
-      <button class="btn-secondary" onclick={() => onDecide?.(false)}>Deny</button>
+      <button class="btn-primary" onclick={() => decide(true)}>Approve</button>
+      <button class="btn-secondary" onclick={() => decide(false)}>Deny</button>
+      {#if !alreadyApprovedForSession}
+        <button class="btn-ghost" onclick={() => decide(true, true)}>Approve for session</button>
+      {/if}
     </div>
   {:else}
     <div class="permission-result" class:denied={!block.approved}>
-      {block.approved ? "Approved" : "Denied"}
+      {block.approved ? "Approved" : "Denied"}{block.approved_for_session ? " (session)" : ""}
     </div>
   {/if}
 </div>
@@ -60,8 +73,9 @@
   .permission-actions {
     display: flex;
     gap: var(--space-3);
+    flex-wrap: wrap;
   }
-  .btn-primary, .btn-secondary {
+  .btn-primary, .btn-secondary, .btn-ghost {
     font-family: var(--font-sans);
     font-size: var(--text-base);
     padding: 6px 12px;
@@ -77,6 +91,12 @@
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text);
+  }
+  .btn-ghost {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    text-decoration: underline;
   }
   .permission-result {
     font-size: var(--text-sm);

@@ -513,6 +513,18 @@ pub fn chat_message_set_pinned(id: String, is_pinned: bool) -> Result<DbMessage,
 }
 
 #[tauri::command]
+pub fn chat_message_delete(id: String, conversation_id: String) -> Result<(), String> {
+    let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM messages_fts WHERE message_id = ?1", params![id]).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM messages WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE conversations SET message_count = CASE WHEN message_count > 0 THEN message_count - 1 ELSE 0 END WHERE id = ?1",
+        params![conversation_id],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn chat_search(query: String) -> Result<Vec<DbMessage>, String> {
     let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(

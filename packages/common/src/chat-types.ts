@@ -62,6 +62,7 @@ export interface ToolResultBlock extends BaseContentBlock {
   tool_id: string;
   output: string;
   is_error: boolean;
+  duration_ms?: number;
 }
 
 export interface ThinkingBlock extends BaseContentBlock {
@@ -75,6 +76,7 @@ export interface PermissionBlock extends BaseContentBlock {
   tool_id: string;
   action: string;
   approved: boolean | null;
+  approved_for_session?: boolean;
 }
 
 export interface FileRefBlock extends BaseContentBlock {
