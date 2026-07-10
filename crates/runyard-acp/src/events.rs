@@ -103,6 +103,24 @@ pub enum AcpEvent {
         connection_id: String,
         status: ConnectionStatus,
     },
+    /// A raw line sent to or received from the agent process (stdio
+    /// transport only). Covers both the JSON-RPC traffic itself and, for
+    /// `Stderr`, the agent's own log/diagnostic output - this is the raw
+    /// material for Runyard's agent log viewer (1.6.9) and satisfies "handle
+    /// stderr separately" (1.7.2) for real, not just on-crash.
+    LogLine {
+        connection_id: String,
+        direction: LogDirection,
+        line: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LogDirection {
+    Stdin,
+    Stdout,
+    Stderr,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

@@ -15,6 +15,11 @@ serde_json = "1.0"
 uuid = { version = "1", features = ["v4"] }
 thiserror = "1"
 tracing = "0.1"
+# Cross-platform PATH executable lookup for agent discovery (1.6.2). Already
+# an existing dependency of runyard-core at the same version, so this isn't a
+# new library to the workspace as a whole - just made directly nameable here
+# too, so the discovery engine can live in this (testable) crate.
+which = "6"
 
 # HTTP/WebSocket transports (1.7.3/1.7.4) are deferred: the protocol itself
 # lists them as Draft RFD status (not yet stabilized), and their TLS stack

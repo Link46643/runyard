@@ -18,6 +18,7 @@
 
 pub mod client;
 pub mod commands;
+pub mod discovery;
 pub mod error;
 pub mod events;
 pub mod pool;
@@ -28,7 +29,8 @@ pub mod updates;
 pub mod mock_agent;
 
 pub use client::RunyardAcpClient;
+pub use discovery::{discover_known_agents, DiscoveredAgent, KnownAgent, KNOWN_AGENTS};
 pub use error::{AcpClientError, AcpResult};
-pub use events::{AcpEvent, ConnectionStatus, PermissionOption};
+pub use events::{AcpEvent, ConnectionStatus, LogDirection, PermissionOption};
 pub use pool::AcpConnectionPool;
 pub use transport::AgentTransportConfig;

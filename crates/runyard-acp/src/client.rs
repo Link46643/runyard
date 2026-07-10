@@ -59,8 +59,22 @@ impl RunyardAcpClient {
 
         match transport {
             AgentTransportConfig::Stdio { command } => {
+                let log_conn_id = connection_id.clone();
+                let log_event_tx = event_tx.clone();
                 let agent = AcpAgent::from_str(&command)
-                    .map_err(|e| AcpClientError::SpawnFailed(e.to_string()))?;
+                    .map_err(|e| AcpClientError::SpawnFailed(e.to_string()))?
+                    .with_debug(move |line, direction| {
+                        let direction = match direction {
+                            agent_client_protocol::LineDirection::Stdin => crate::events::LogDirection::Stdin,
+                            agent_client_protocol::LineDirection::Stdout => crate::events::LogDirection::Stdout,
+                            agent_client_protocol::LineDirection::Stderr => crate::events::LogDirection::Stderr,
+                        };
+                        let _ = log_event_tx.send(AcpEvent::LogLine {
+                            connection_id: log_conn_id.clone(),
+                            direction,
+                            line: line.to_string(),
+                        });
+                    });
                 let conn_id = connection_id.clone();
                 let handle = tokio::spawn(async move {
                     run_stdio_connection(conn_id, agent, command_rx, event_tx).await;

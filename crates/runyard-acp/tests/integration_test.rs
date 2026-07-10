@@ -9,11 +9,21 @@ use runyard_acp::{AcpEvent, AgentTransportConfig, RunyardAcpClient};
 use tokio::sync::mpsc;
 use tokio::time::{timeout, Duration};
 
+/// Waits for the next event, transparently skipping `LogLine` events - those
+/// now fire for every raw line sent/received over stdio (real wire traffic,
+/// see the dedicated `log_lines_are_captured_from_real_process_io` test
+/// below), which would otherwise interleave unpredictably with the specific
+/// protocol-event sequences the other tests assert on.
 async fn next_event(rx: &mut mpsc::UnboundedReceiver<AcpEvent>) -> AcpEvent {
-    timeout(Duration::from_secs(10), rx.recv())
-        .await
-        .expect("timed out waiting for event")
-        .expect("event channel closed unexpectedly")
+    loop {
+        let event = timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .expect("timed out waiting for event")
+            .expect("event channel closed unexpectedly");
+        if !matches!(event, AcpEvent::LogLine { .. }) {
+            return event;
+        }
+    }
 }
 
 #[tokio::test]
@@ -152,6 +162,46 @@ async fn session_reattach_mode_cancel_and_logout_round_trip() {
     client.close_session(session_id.clone()).await.expect("close_session failed");
     let closed = next_event(&mut event_rx).await;
     assert!(matches!(closed, AcpEvent::SessionClosed { .. }), "expected SessionClosed, got {closed:?}");
+
+    client.shutdown().await;
+}
+
+#[tokio::test]
+async fn log_lines_are_captured_from_real_process_io() {
+    let bin_path = env!("CARGO_BIN_EXE_mock-agent-bin");
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+
+    let client = RunyardAcpClient::connect(AgentTransportConfig::stdio(bin_path), event_tx)
+        .await
+        .expect("failed to connect to mock agent process");
+
+    // The initialize handshake alone sends one JSON-RPC line out (stdin, the
+    // request) and one back (stdout, the response) - real wire bytes, not
+    // synthesized. Drain events until at least one of each is observed,
+    // failing fast if none show up before the timeout.
+    let mut saw_stdin = false;
+    let mut saw_stdout = false;
+    for _ in 0..50 {
+        let event = timeout(Duration::from_secs(10), event_rx.recv())
+            .await
+            .expect("timed out waiting for a log line")
+            .expect("event channel closed unexpectedly");
+        match event {
+            AcpEvent::LogLine { direction: runyard_acp::LogDirection::Stdin, ref line, .. } => {
+                assert!(line.contains("initialize"), "expected the initialize request on stdin, got: {line}");
+                saw_stdin = true;
+            }
+            AcpEvent::LogLine { direction: runyard_acp::LogDirection::Stdout, .. } => {
+                saw_stdout = true;
+            }
+            _ => {}
+        }
+        if saw_stdin && saw_stdout {
+            break;
+        }
+    }
+    assert!(saw_stdin, "never observed a stdin log line");
+    assert!(saw_stdout, "never observed a stdout log line");
 
     client.shutdown().await;
 }
