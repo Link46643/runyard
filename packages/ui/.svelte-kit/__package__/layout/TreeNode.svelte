@@ -6,6 +6,8 @@
   import { File, Folder, FolderOpen } from "lucide-svelte";
   import { explorerStore } from "./explorerStore.svelte.js";
 
+  import { webSocketClient } from "@runyard/common";
+
   let { node, onOpenFile, depth = 0 } = $props<{ 
     node: FsEntry, 
     onOpenFile: (path: string, name: string) => void,
@@ -20,7 +22,12 @@
     if (node.kind === "dir" && expanded) {
       loading = true;
       try {
-        let res = await invoke<FsEntry[]>("fs_list", { path: node.path });
+        let res: FsEntry[];
+        if (webSocketClient.status === "connected") {
+          res = await webSocketClient.invoke<FsEntry[]>("fs_list", { path: node.path });
+        } else {
+          res = await invoke<FsEntry[]>("fs_list", { path: node.path });
+        }
         res.sort((a, b) => {
           if (a.kind === b.kind) return a.name.localeCompare(b.name);
           return a.kind === "dir" ? -1 : 1;

@@ -5,7 +5,10 @@
     id?: string;
   }>();
 
-  const internalId = id || Math.random().toString(36).substring(2, 9);
+  // Use $derived so internalId stays reactive if the `id` prop changes.
+  // The random fallback is stable because it's captured in a variable at init.
+  const _fallbackId = Math.random().toString(36).substring(2, 9);
+  let internalId = $derived(id || _fallbackId);
 </script>
 
 <div class="checkbox-container">

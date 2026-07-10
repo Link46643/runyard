@@ -144,9 +144,12 @@
     await lspStore.send(language, initMsg);
   }
 
+  let _insertCmdHandler: ((e: Event) => void) | null = null;
+
   onDestroy(() => {
     if (_blurHandler) window.removeEventListener("blur", _blurHandler);
     if (_saveCmdHandler) document.removeEventListener("runyard:save-current-file", _saveCmdHandler);
+    if (_insertCmdHandler) document.removeEventListener("runyard:insert-at-cursor", _insertCmdHandler);
     if (editorInstance) editorInstance.destroy();
     appStatus.updateActiveFile(null);
     appStatus.updateCursor(1, 1);
@@ -168,6 +171,21 @@
       }
     };
     document.addEventListener("runyard:save-current-file", _saveCmdHandler);
+
+    // Insert-at-cursor command from chat code blocks — only act when this file is the active one
+    _insertCmdHandler = (e: Event) => {
+      if (appStatus.activeFilePath !== filePath || !editorInstance) return;
+      const text = (e as CustomEvent<{ text: string }>).detail?.text;
+      if (!text) return;
+      const view = editorInstance.view;
+      const pos = view.state.selection.main.head;
+      view.dispatch({
+        changes: { from: pos, to: pos, insert: text },
+        selection: { anchor: pos + text.length },
+      });
+      view.focus();
+    };
+    document.addEventListener("runyard:insert-at-cursor", _insertCmdHandler);
 
     // Ensure LSP settings are loaded
     if (!settingsStore.loaded) {

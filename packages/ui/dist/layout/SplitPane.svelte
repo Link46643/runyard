@@ -51,10 +51,12 @@
     role="presentation"
 >
   {#each node.children as child, i}
-    <div class="pane" style="flex: {node.sizes[i] || (100 / node.children.length)}%;">
-      <LayoutRenderer node={child} />
-    </div>
-    {#if i < node.children.length - 1 && platform.current === "desktop"}
+    {#if platform.current !== "mobile" || i === 1 || node.children.length !== 2}
+      <div class="pane" style="flex: {platform.current === 'mobile' ? 100 : (node.sizes[i] || (100 / node.children.length))}%;">
+        <LayoutRenderer node={child} />
+      </div>
+    {/if}
+    {#if i < node.children.length - 1 && platform.current !== "mobile"}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div 
         class="resizer {node.direction}" 

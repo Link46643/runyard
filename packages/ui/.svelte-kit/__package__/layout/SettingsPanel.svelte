@@ -3,9 +3,19 @@
   import { settingsStore } from "./settingsStore.svelte.js";
   import type { LspLanguageConfig } from "@runyard/common";
 
-  let activeSection = $state<"editor" | "terminal" | "appearance" | "lsp">("editor");
+  let activeSection = $state<"editor" | "terminal" | "appearance" | "lsp" | "connections">("editor");
+  let connections = $state<any[]>([]);
+
+  function loadConnections() {
+    try {
+      connections = JSON.parse(localStorage.getItem("runyard:connections") || "[]");
+    } catch {
+      connections = [];
+    }
+  }
 
   onMount(async () => {
+    loadConnections();
     if (!settingsStore.loaded) {
       await settingsStore.load();
     }
@@ -26,6 +36,7 @@
     { id: "terminal", label: "Terminal" },
     { id: "appearance", label: "Appearance" },
     { id: "lsp", label: "Language Servers" },
+    { id: "connections", label: "Connections" },
   ] as const;
 
   const languages = [
@@ -284,6 +295,149 @@
           {/if}
         </div>
       {/each}
+    {:else if activeSection === "connections"}
+      <h2 class="section-title">Remote Connections</h2>
+      <p class="section-desc">
+        Configure host connections to remote Sub-services.
+      </p>
+
+      <div class="connections-list" style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+        {#if connections.length === 0}
+          <div style="opacity: 0.5; font-style: italic;">No remote connections configured.</div>
+        {:else}
+          {#each connections as conn, i}
+            <div style="border: 1px solid var(--border); padding: 12px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; background: var(--bg-secondary);">
+              <div>
+                <div style="font-weight: bold;">{conn.name}</div>
+                <div style="font-size: 11px; opacity: 0.8; font-family: var(--font-mono);">ws://{conn.host}:{conn.port}</div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button
+                  style="padding: 4px 8px; font-size: 11px; cursor: pointer; background: var(--accent); color: white; border: none; border-radius: 3px;"
+                  onclick={() => {
+                    localStorage.setItem("runyard:token", conn.token);
+                    window.location.search = `?token=${encodeURIComponent(conn.token)}`;
+                  }}
+                >
+                  Connect
+                </button>
+                <button
+                  style="padding: 4px 8px; font-size: 11px; cursor: pointer; background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--text-secondary);"
+                  onclick={() => {
+                    const next = connections.filter((_: any, idx: number) => idx !== i);
+                    localStorage.setItem("runyard:connections", JSON.stringify(next));
+                    loadConnections();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          {/each}
+        {/if}
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Add New Connection</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="text" placeholder="Connection Name (e.g. My Remote Server)" id="conn-name" class="text-input" />
+          <div style="display: flex; gap: 8px;">
+            <input type="text" placeholder="Host (e.g. localhost)" id="conn-host" class="text-input" style="flex: 2;" />
+            <input type="number" placeholder="Port" id="conn-port" class="text-input" style="flex: 1;" value="7820" />
+          </div>
+          <input type="password" placeholder="Auth Token" id="conn-token" class="text-input" />
+          
+          <button
+            style="align-self: flex-start; padding: 6px 12px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;"
+            onclick={() => {
+              const nameEl = document.getElementById("conn-name") as HTMLInputElement;
+              const hostEl = document.getElementById("conn-host") as HTMLInputElement;
+              const portEl = document.getElementById("conn-port") as HTMLInputElement;
+              const tokenEl = document.getElementById("conn-token") as HTMLInputElement;
+              
+              if (!nameEl.value || !hostEl.value || !tokenEl.value) {
+                 alert("Please fill in Name, Host, and Token");
+                 return;
+              }
+
+              const newConn = {
+                name: nameEl.value,
+                host: hostEl.value,
+                port: Number(portEl.value) || 7820,
+                token: tokenEl.value
+              };
+
+              const current = (() => {
+                try {
+                  return JSON.parse(localStorage.getItem("runyard:connections") || "[]");
+                } catch {
+                  return [];
+                }
+              })();
+
+              current.push(newConn);
+              localStorage.setItem("runyard:connections", JSON.stringify(current));
+              
+              nameEl.value = "";
+              hostEl.value = "";
+              portEl.value = "7820";
+              tokenEl.value = "";
+              
+              loadConnections();
+            }}
+          >
+            Save Connection
+          </button>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px;">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">SSH Bootstrap Remote Server</h3>
+        <p style="font-size: 11px; opacity: 0.8; margin-bottom: 8px;">Deploys the Subservice backend to a remote Linux environment automatically via SSH.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <input type="text" placeholder="SSH Host" id="ssh-host" class="text-input" style="flex: 2;" />
+            <input type="number" placeholder="SSH Port" id="ssh-port" class="text-input" style="flex: 1;" value="22" />
+          </div>
+          <input type="text" placeholder="SSH Username" id="ssh-user" class="text-input" />
+          <input type="text" placeholder="Subservice Port (default 7820)" id="bootstrap-port" class="text-input" value="7820" />
+          <input type="password" placeholder="Subservice Token (auto-generated if empty)" id="bootstrap-token" class="text-input" />
+
+          <button
+            style="align-self: flex-start; padding: 6px 12px; background: var(--accent-secondary, #8b5cf6); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;"
+            onclick={async () => {
+              const hostEl = document.getElementById("ssh-host") as HTMLInputElement;
+              const portEl = document.getElementById("ssh-port") as HTMLInputElement;
+              const userEl = document.getElementById("ssh-user") as HTMLInputElement;
+              const bootPortEl = document.getElementById("bootstrap-port") as HTMLInputElement;
+              const bootTokenEl = document.getElementById("bootstrap-token") as HTMLInputElement;
+
+              if (!hostEl.value || !userEl.value) {
+                alert("Please fill in SSH Host and Username");
+                return;
+              }
+
+              const token = bootTokenEl.value || "ry_tok_generated";
+
+              try {
+                // Call rust tauri command for boot
+                const res = await invoke<string>("ssh_bootstrap", {
+                  host: hostEl.value,
+                  port: Number(portEl.value) || 22,
+                  username: userEl.value,
+                  token
+                });
+                alert(res);
+              } catch(e) {
+                alert(`SSH Bootstrap failed: ${e}`);
+              }
+            }}
+          >
+            Run SSH Bootstrap
+          </button>
+        </div>
+      </div>
     {/if}
   </div>
 </div>

@@ -8,7 +8,7 @@
 
   let query = $state("");
   let selectedIndex = $state(0);
-  let inputEl: HTMLInputElement;
+  let inputEl = $state<HTMLInputElement | undefined>(undefined);
 
   /** Unified palette item — commands, tabs, and recent files all share this shape. */
   interface PaletteItem {

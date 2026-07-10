@@ -33,6 +33,8 @@ declare class LayoutStore {
     openGit(workspacePath?: string): void;
     /** Open (or focus) the Settings panel. */
     openSettings(): void;
+    /** Open (or focus) the AI Chat panel. Single instance, like Settings. */
+    openChat(): void;
 }
 export declare const layoutEngine: LayoutStore;
 export {};

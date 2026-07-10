@@ -5,6 +5,8 @@
   import type { FsEntry } from "@runyard/common";
   import TreeNode from "./TreeNode.svelte";
 
+  import { webSocketClient } from "@runyard/common";
+
   let { workspacePath, onOpenFile } = $props<{ 
     workspacePath: string, 
     onOpenFile: (path: string, name: string) => void 
@@ -15,7 +17,12 @@
 
   async function loadRoot() {
     try {
-      let res = await invoke<FsEntry[]>("fs_list", { path: workspacePath });
+      let res: FsEntry[];
+      if (webSocketClient.status === "connected") {
+        res = await webSocketClient.invoke<FsEntry[]>("fs_list", { path: workspacePath });
+      } else {
+        res = await invoke<FsEntry[]>("fs_list", { path: workspacePath });
+      }
       res.sort((a, b) => {
         if (a.kind === b.kind) return a.name.localeCompare(b.name);
         return a.kind === "dir" ? -1 : 1;
@@ -38,7 +45,11 @@
     });
 
     // Start watching the workspace root
-    invoke("fs_watch", { path: workspacePath }).catch(console.error);
+    if (webSocketClient.status === "connected") {
+      webSocketClient.invoke("fs_watch", { path: workspacePath }).catch(console.error);
+    } else {
+      invoke("fs_watch", { path: workspacePath }).catch(console.error);
+    }
 
     return () => {
       unlisten.then(f => f());

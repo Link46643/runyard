@@ -455,5 +455,41 @@ class LayoutStore {
             this.save();
         }
     }
+    /** Open (or focus) the AI Chat panel. Single instance, like Settings. */
+    openChat() {
+        const tabId = "chat";
+        const setFocus = (node) => {
+            if (node.type === "leaf") {
+                if (node.tabs.some((t) => t.id === tabId)) {
+                    node.activeTabId = tabId;
+                    return true;
+                }
+            }
+            else if (node.type === "split") {
+                for (const child of node.children) {
+                    if (setFocus(child))
+                        return true;
+                }
+            }
+            return false;
+        };
+        if (setFocus(this.layout.root)) {
+            this.save();
+            return;
+        }
+        const tab = {
+            id: tabId,
+            type: "chat",
+            title: "AI Chat",
+            props: {},
+        };
+        const targetLeaf = this.findFirstLeafNotExplorer(this.layout.root) ||
+            this.findFirstLeaf(this.layout.root);
+        if (targetLeaf) {
+            targetLeaf.tabs.push(tab);
+            targetLeaf.activeTabId = tab.id;
+            this.save();
+        }
+    }
 }
 export const layoutEngine = new LayoutStore();

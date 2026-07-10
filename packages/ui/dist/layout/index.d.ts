@@ -5,3 +5,4 @@ export * from './settingsStore.svelte.js';
 export * from './commandRegistry.svelte.js';
 export * from './lspStore.svelte.js';
 export { default as Layout } from './Layout.svelte';
+export { default as ChatPanel } from './ChatPanel.svelte';

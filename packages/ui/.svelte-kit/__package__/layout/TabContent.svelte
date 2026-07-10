@@ -7,6 +7,7 @@
   import PlaceholderTab from "./PlaceholderTab.svelte";
   import TerminalPanel from "./TerminalPanel.svelte";
   import GitPanel from "./GitPanel.svelte";
+  import ChatPanel from "./ChatPanel.svelte";
 
   let { tab } = $props<{ tab: Tab }>();
 </script>
@@ -24,6 +25,8 @@
   <GitPanel
     workspacePath={tab.props.workspacePath as string ?? "../../"}
   />
+{:else if tab.type === "chat"}
+  <ChatPanel {tab} />
 {:else if tab.type === "settings"}
   <SettingsPanel />
 {:else if tab.type === "welcome"}
