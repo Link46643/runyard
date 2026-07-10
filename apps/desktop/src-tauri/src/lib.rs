@@ -113,6 +113,39 @@ pub fn run() {
             runyard_core::acp_bridge::acp_set_config_option,
             runyard_core::acp_bridge::acp_authenticate,
             runyard_core::acp_bridge::acp_logout,
+            // ── MCP Server Config (1.8) ───────────────────────────────────
+            runyard_core::mcp_server_db::mcp_server_list,
+            runyard_core::mcp_server_db::mcp_server_get,
+            runyard_core::mcp_server_db::mcp_server_create,
+            runyard_core::mcp_server_db::mcp_server_update,
+            runyard_core::mcp_server_db::mcp_server_delete,
+            runyard_core::mcp_server_db::mcp_server_set_active,
+            runyard_core::mcp_server_db::mcp_server_export,
+            runyard_core::mcp_server_db::mcp_server_import,
+            // ── Skills (1.9) ─────────────────────────────────────────────
+            runyard_core::skills_db::skill_list,
+            runyard_core::skills_db::skill_get,
+            runyard_core::skills_db::skill_create,
+            runyard_core::skills_db::skill_update,
+            runyard_core::skills_db::skill_delete,
+            runyard_core::skills_db::skill_scan_directories,
+            runyard_core::skills_db::skill_catalog,
+            // ── Agent Task Tracking (1.10) ────────────────────────────────
+            runyard_core::agent_tasks_db::agent_task_list,
+            runyard_core::agent_tasks_db::agent_task_get,
+            runyard_core::agent_tasks_db::agent_task_create,
+            runyard_core::agent_tasks_db::agent_task_update_status,
+            runyard_core::agent_tasks_db::agent_task_delete,
+            runyard_core::agent_tasks_db::agent_task_clear_completed,
+            runyard_core::agent_tasks_db::agent_task_stats,
+            // ── Notes & TODOs (1.11) ──────────────────────────────────────
+            runyard_core::notes_db::note_load,
+            runyard_core::notes_db::note_save,
+            runyard_core::notes_db::todo_list,
+            runyard_core::notes_db::todo_create,
+            runyard_core::notes_db::todo_update,
+            runyard_core::notes_db::todo_delete,
+            runyard_core::notes_db::todo_reorder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -136,8 +136,16 @@ pub fn init_db() -> SqlResult<()> {
     // Run migrations to add columns in case the table existed previously
     run_migrations(&conn)?;
 
-    // Phase 1.6: ACP agent registry tables, same db file/connection setup.
+    // Phase 1.6: ACP agent registry tables.
     crate::acp_agent_db::init_acp_agent_tables(&conn)?;
+    // Phase 1.8: MCP server config tables.
+    crate::mcp_server_db::init_mcp_server_tables(&conn)?;
+    // Phase 1.9: Skills tables.
+    crate::skills_db::init_skills_tables(&conn)?;
+    // Phase 1.10: Agent task tracking tables.
+    crate::agent_tasks_db::init_agent_task_tables(&conn)?;
+    // Phase 1.11: Notes and TODOs.
+    crate::notes_db::init_notes_tables(&conn)?;
 
     Ok(())
 }

@@ -20,6 +20,12 @@ pub mod acp_agent_db;
 pub mod acp_bridge;
 pub mod acp_registry;
 
+// Phase 1.8-1.11: MCP config, Skills, Agent tasks, Notes/TODOs
+pub mod mcp_server_db;
+pub mod skills_db;
+pub mod agent_tasks_db;
+pub mod notes_db;
+
 
 // Re-export state types for Tauri setup
 pub use terminal::TerminalState;

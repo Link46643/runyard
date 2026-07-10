@@ -2,3 +2,7 @@ export * from "./types.js";
 export * from "./websocket-client.js";
 export * from "./chat-types.js";
 export * from "./acp-agent-types.js";
+export * from "./mcp-types.js";
+export * from "./skills-types.js";
+export * from "./agent-task-types.js";
+export * from "./notes-types.js";

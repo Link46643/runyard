@@ -10,6 +10,12 @@ export type TabType =
   | "git"
   | "settings"
   | "agent-manager"
+  | "mcp-manager"
+  | "skills"
+  | "agent-tasks"
+  | "notes"
+  | "todo"
+  | "diff-viewer"
   | "orchestrator"
   | "welcome";
 
