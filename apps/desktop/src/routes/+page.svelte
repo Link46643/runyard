@@ -44,6 +44,13 @@
     });
 
     commandRegistry.register({
+      id: "chat.open",
+      title: "Open AI Chat",
+      category: "Chat",
+      handler: () => layoutEngine.openChat(),
+    });
+
+    commandRegistry.register({
       id: "view.splitHorizontal",
       title: "Split Editor Right",
       category: "View",
@@ -306,6 +313,11 @@
         layoutEngine.openTerminal();
       }}>
         <span style="font-weight: 600;">Terminal</span>
+      </button>
+      <button style="background: none; border: none; color: var(--text); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;" onclick={() => {
+        layoutEngine.openChat();
+      }}>
+        <span style="font-weight: 600;">Chat</span>
       </button>
       <button style="background: none; border: none; color: var(--text); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;" onclick={() => {
         layoutEngine.openSettings();
