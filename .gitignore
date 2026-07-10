@@ -1,10 +1,10 @@
 # Dependencies
 node_modules/
-/target
-/dist
-/.turbo
-/.svelte-kit
-/package
+target/
+dist/
+.svelte-kit/
+package/
+.turbo/
 
 # Logs
 *.log
