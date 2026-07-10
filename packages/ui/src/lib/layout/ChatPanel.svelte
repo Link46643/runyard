@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { X, GitBranch, ChevronDown } from "lucide-svelte";
+  import { X, GitBranch, ChevronDown, Cpu } from "lucide-svelte";
   import { chatStore } from "../stores/chatStore.svelte.js";
   import ConversationList from "./chat/ConversationList.svelte";
   import ChatMessageList from "./chat/ChatMessageList.svelte";
   import ChatInput from "./chat/ChatInput.svelte";
   import { layoutEngine } from "./layoutStore.svelte.js";
+  import { acpStore } from "../stores/acpStore.svelte.js";
 
   let { tab }: { tab?: { props: Record<string, unknown> } } = $props();
 
@@ -12,6 +13,7 @@
   let modelDraft = $state("");
   let branchMenuOpen = $state(false);
   let scrollToMessageId = $state<string | null>(null);
+  let agentMenuOpen = $state(false);
 
   async function newConversation() {
     await chatStore.createConversation("New conversation", "unassigned");
@@ -24,6 +26,13 @@
   const activeConversation = $derived(
     chatStore.conversations.find((c) => c.id === chatStore.activeConversationId)
   );
+
+  const activeAgent = $derived(
+    acpStore.agents.find(
+      (a) => a.status === "connected" || a.status === "ready" || a.status === "processing"
+    )
+  );
+  const hasActiveAgent = $derived(activeAgent !== null && activeAgent !== undefined);
 
   // Rough, clearly-labeled estimate (~4 chars/token) - there is no real
   // tokenizer wired up yet (that lands with context assembly in section 1.5),
@@ -72,6 +81,49 @@
 
   <div class="chat-main">
     <div class="chat-header">
+      <div class="agent-switcher-wrapper">
+        {#if hasActiveAgent}
+          <div
+            class="agent-status-dot"
+            class:dot-ready={activeAgent?.status === "connected" || activeAgent?.status === "ready"}
+            class:dot-processing={activeAgent?.status === "processing"}
+            class:dot-error={activeAgent?.status === "error"}
+            class:dot-muted={activeAgent?.status === "connecting"}
+          ></div>
+        {/if}
+        <button
+          class="agent-switcher-btn"
+          onclick={() => (agentMenuOpen = !agentMenuOpen)}
+          title={hasActiveAgent ? `Agent: ${activeAgent?.name}` : "No agent connected"}
+        >
+          <Cpu size={14} strokeWidth={1.5} />
+          <span class="agent-switcher-name">{hasActiveAgent ? activeAgent?.name : "No agent"}</span>
+          <ChevronDown size={11} strokeWidth={1.5} />
+        </button>
+        {#if agentMenuOpen}
+          <div class="agent-menu">
+            {#if hasActiveAgent}
+              {#each acpStore.agents.filter(a => a.status === "connected" || a.status === "ready" || a.status === "processing") as agent (agent.id)}
+                <div class="agent-menu-item agent-menu-item--display">
+                  <span class="agent-menu-dot dot-ready"></span>
+                  <span>{agent.name}</span>
+                </div>
+              {/each}
+              <div class="agent-menu-divider"></div>
+            {:else}
+              <div class="agent-menu-empty">No agent connected.</div>
+            {/if}
+            <button
+              class="agent-menu-manage"
+              onclick={() => {
+                agentMenuOpen = false;
+                (layoutEngine as any).openAgentManager?.();
+              }}
+            >Manage agents →</button>
+          </div>
+        {/if}
+      </div>
+
       <span class="conv-title">{activeConversation?.title ?? "AI CHAT"}</span>
 
       {#if activeConversation}
@@ -351,5 +403,128 @@
     font-family: var(--font-sans);
     font-size: var(--text-base);
     cursor: pointer;
+  }
+
+  /* Agent switcher */
+  .agent-switcher-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .agent-switcher-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: var(--radius-1);
+    color: var(--text-secondary);
+  }
+
+  .agent-switcher-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text);
+  }
+
+  .agent-switcher-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .agent-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-1);
+    min-width: 180px;
+    max-width: 240px;
+    z-index: 100;
+    padding: var(--space-1);
+  }
+
+  .agent-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: var(--text-sm);
+    color: var(--text);
+    border-radius: var(--radius-1);
+    cursor: default;
+    user-select: none;
+  }
+
+  .agent-menu-empty {
+    padding: 6px 10px;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+  }
+
+  .agent-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: var(--space-1) 0;
+  }
+
+  .agent-menu-manage {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 6px 10px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-1);
+    font-family: var(--font-sans);
+  }
+
+  .agent-menu-manage:hover {
+    background: var(--bg-tertiary);
+    color: var(--text);
+  }
+
+  /* Status dots - 6x6 static circles */
+  .agent-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  .agent-menu-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  .dot-ready {
+    background: var(--text-success);
+  }
+
+  .dot-processing {
+    background: var(--text-warning);
+  }
+
+  .dot-error {
+    background: var(--text-error);
+  }
+
+  .dot-muted {
+    background: var(--text-tertiary);
   }
 </style>

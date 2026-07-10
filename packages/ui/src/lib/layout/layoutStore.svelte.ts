@@ -519,6 +519,47 @@ class LayoutStore {
       this.save();
     }
   }
+
+  /** Open (or focus) the Agent Manager panel. Single instance. */
+  openAgentManager() {
+    const tabId = "agent-manager";
+
+    const setFocus = (node: LayoutNode): boolean => {
+      if (node.type === "leaf") {
+        if (node.tabs.some((t) => t.id === tabId)) {
+          node.activeTabId = tabId;
+          return true;
+        }
+      } else if (node.type === "split") {
+        for (const child of node.children) {
+          if (setFocus(child)) return true;
+        }
+      }
+      return false;
+    };
+
+    if (setFocus(this.layout.root)) {
+      this.save();
+      return;
+    }
+
+    const tab: Tab = {
+      id: tabId,
+      type: "agent-manager",
+      title: "Agent manager",
+      props: {},
+    };
+
+    const targetLeaf =
+      this.findFirstLeafNotExplorer(this.layout.root) ||
+      this.findFirstLeaf(this.layout.root);
+
+    if (targetLeaf) {
+      targetLeaf.tabs.push(tab);
+      targetLeaf.activeTabId = tab.id;
+      this.save();
+    }
+  }
 }
 
 export const layoutEngine = new LayoutStore();

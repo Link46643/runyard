@@ -51,6 +51,13 @@
     });
 
     commandRegistry.register({
+      id: "agent.manager",
+      title: "Open agent manager",
+      category: "Agents",
+      handler: () => layoutEngine.openAgentManager(),
+    });
+
+    commandRegistry.register({
       id: "view.splitHorizontal",
       title: "Split Editor Right",
       category: "View",

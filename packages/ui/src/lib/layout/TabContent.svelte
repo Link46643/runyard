@@ -8,6 +8,7 @@
   import TerminalPanel from "./TerminalPanel.svelte";
   import GitPanel from "./GitPanel.svelte";
   import ChatPanel from "./ChatPanel.svelte";
+  import AgentManagerPanel from "./AgentManagerPanel.svelte";
 
   let { tab } = $props<{ tab: Tab }>();
 </script>
@@ -29,6 +30,8 @@
   <ChatPanel {tab} />
 {:else if tab.type === "settings"}
   <SettingsPanel />
+{:else if tab.type === "agent-manager"}
+  <AgentManagerPanel />
 {:else if tab.type === "welcome"}
   <WelcomePanel />
 {:else}

@@ -6,3 +6,4 @@ export * from './commandRegistry.svelte.js';
 export * from './lspStore.svelte.js';
 export { default as Layout } from './Layout.svelte';
 export { default as ChatPanel } from './ChatPanel.svelte';
+export { default as AgentManagerPanel } from './AgentManagerPanel.svelte';
