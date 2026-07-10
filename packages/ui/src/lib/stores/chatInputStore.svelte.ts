@@ -1,5 +1,15 @@
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import { webSocketClient } from "@runyard/common";
 import { acpStore } from "./acpStore.svelte.js";
 import { chatStore } from "./chatStore.svelte.js";
+
+async function invoke<T>(cmd: string, args?: any): Promise<T> {
+  if (webSocketClient.status === "connected") {
+    return webSocketClient.invoke<T>(cmd, args);
+  } else {
+    return tauriInvoke<T>(cmd, args);
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +80,19 @@ class ChatInputStore {
     const trimmedText = this.text.trim();
     if (!trimmedText && this.attachments.length === 0) return;
 
+    // ── 1.9.6: Fetch skill catalog and prepend BEFORE attachments ─────────
+    let skillCatalogPrefix = "";
+    try {
+      const catalog = await invoke<Array<{ name: string; description: string; when_to_use: string | null }>>("skill_catalog");
+      if (catalog && catalog.length > 0) {
+        const catalogLines = catalog.map((s) => `- ${s.name}: ${s.description}`).join("\n");
+        skillCatalogPrefix = `[Available skills:\n${catalogLines}]\n\n`;
+      }
+    } catch (_e) {
+      // skill_catalog may not be available in all environments; skip silently
+    }
+    // ── end 1.9.6 ─────────────────────────────────────────────────────────
+
     // Build full prompt text: prepend any attachments as XML file blocks
     let fullText = trimmedText;
     if (this.attachments.length > 0) {
@@ -78,6 +101,40 @@ class ChatInputStore {
         .join("\n");
       fullText = attachmentBlock + (trimmedText ? "\n" + trimmedText : "");
     }
+
+    // Prepend skill catalog (before attachments per spec)
+    if (skillCatalogPrefix) {
+      fullText = skillCatalogPrefix + fullText;
+    }
+
+    // ── Context assembly: pinned context files ─────────────────────────────
+    const contextParts: string[] = [];
+    if ((chatStore as any).pinnedContext?.length > 0) {
+      for (const pc of (chatStore as any).pinnedContext) {
+        try {
+          const content = await invoke<string>("fs_read", { path: pc.file_path });
+          contextParts.push(`<file path="${pc.file_path}">${content}</file>`);
+        } catch (e) {
+          console.warn("[ChatInputStore] Could not read pinned file", pc.file_path, e);
+        }
+      }
+    }
+    if (contextParts.length > 0) {
+      fullText = contextParts.join("\n") + "\n" + fullText;
+    }
+    // ── end context assembly ───────────────────────────────────────────────
+
+    // ── 1.9.3: Extract @skill:name mentions and append as metadata ────────
+    const skillMentionRegex = /@skill:([a-z][a-z0-9-]*)/g;
+    const skillNames: string[] = [];
+    let skillMatch;
+    while ((skillMatch = skillMentionRegex.exec(trimmedText)) !== null) {
+      skillNames.push(skillMatch[1]);
+    }
+    if (skillNames.length > 0) {
+      fullText = fullText + `\n\n[Skills requested: ${skillNames.join(", ")}]`;
+    }
+    // ── end 1.9.3 ─────────────────────────────────────────────────────────
 
     // Check for active ACP agent
     const activeAgent = acpStore.agents.find(
@@ -170,6 +227,14 @@ class ChatInputStore {
   clearAll() {
     this.text = "";
     this.attachments = [];
+  }
+
+  // ── Context compression (1.5.14) ──────────────────────────────────────────
+  autoCompress = $state(false);
+
+  clearMessages() {
+    // Clear local messages display; chatStore.messages is reactive state
+    chatStore.messages = [];
   }
 }
 

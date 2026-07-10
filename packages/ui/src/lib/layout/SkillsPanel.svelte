@@ -1,6 +1,6 @@
 <script lang="ts">
   // 1. Imports
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     Plus,
     BookOpen,
@@ -10,11 +10,112 @@
     RefreshCw,
   } from "lucide-svelte";
   import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { webSocketClient } from "@runyard/common";
   import type { SkillMetadata, SkillScope, ScannedSkillCandidate } from "@runyard/common";
 
   // 2. Types
   type DialogMode = "add" | "edit" | null;
+
+  interface SkillTemplate {
+    name: string;
+    description: string;
+    body: string;
+  }
+
+  const SKILL_TEMPLATES: SkillTemplate[] = [
+    {
+      name: "code-review",
+      description: "Performs thorough code review with focus on correctness, style, and security",
+      body: `Review the provided code for:
+1. Logic errors and bugs
+2. Security vulnerabilities (injection, XSS, auth issues)
+3. Performance issues
+4. Style and readability
+5. Missing error handling
+
+Provide specific, actionable feedback with line references where possible.`
+    },
+    {
+      name: "debug",
+      description: "Systematically debugs issues by analyzing error messages and tracing execution",
+      body: `Debug the reported issue:
+1. Identify the error type and message
+2. Trace the execution path to the failure point
+3. Check for common causes (null refs, type mismatches, off-by-one)
+4. Propose a fix with explanation
+5. Suggest how to prevent similar issues`
+    },
+    {
+      name: "refactor",
+      description: "Refactors code for clarity, maintainability, and following project conventions",
+      body: `Refactor the code:
+1. Identify code smells (long functions, deep nesting, duplicates)
+2. Apply appropriate patterns (extract function, rename, simplify)
+3. Preserve existing behavior - include tests if available
+4. Follow project conventions from surrounding code`
+    },
+    {
+      name: "test-generation",
+      description: "Generates comprehensive unit and integration tests for the given code",
+      body: `Generate tests:
+1. Identify all public interfaces and functions
+2. Cover happy paths, edge cases, and error conditions
+3. Use the project's existing test framework and conventions
+4. Aim for >80% branch coverage
+5. Include both unit tests and integration tests where appropriate`
+    },
+    {
+      name: "documentation",
+      description: "Writes clear documentation: docstrings, README updates, inline comments",
+      body: `Write documentation:
+1. Add docstrings/JSDoc to all public functions and types
+2. Update README if behavior changes
+3. Add inline comments for non-obvious logic only
+4. Keep explanations concise and accurate`
+    },
+    {
+      name: "api-migration",
+      description: "Migrates code from one API version to another safely",
+      body: `Migrate the API usage:
+1. Identify all usage sites of the old API
+2. Understand breaking changes in the new version
+3. Update each usage site, preserving semantics
+4. Add compatibility shims if needed for gradual migration
+5. Update types and interfaces`
+    },
+    {
+      name: "security-audit",
+      description: "Audits code for security vulnerabilities and compliance issues",
+      body: `Security audit:
+1. Check for injection vulnerabilities (SQL, command, template)
+2. Verify authentication and authorization
+3. Check for sensitive data exposure
+4. Review dependency security
+5. Check for insecure cryptography
+Report severity: Critical / High / Medium / Low`
+    },
+    {
+      name: "performance-optimize",
+      description: "Identifies and fixes performance bottlenecks",
+      body: `Optimize performance:
+1. Profile the hot path (identify the bottleneck)
+2. Check for N+1 queries, unnecessary loops, memory leaks
+3. Consider caching opportunities
+4. Measure before and after
+5. Document the trade-offs of each change`
+    },
+    {
+      name: "deployment",
+      description: "Assists with deployment preparation: CI/CD, environment config, health checks",
+      body: `Deployment preparation:
+1. Review environment variables and secrets management
+2. Check health check endpoints
+3. Review CI/CD pipeline steps
+4. Verify rollback strategy
+5. Check logging and monitoring setup`
+    },
+  ];
 
   // Dual-mode invoke (Tauri or WebSocket)
   async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -43,7 +144,7 @@
   let formBody = $state("");
 
   // Form validation errors
-  let formErrors = $state<{ name?: string; body?: string }>({});
+  let formErrors = $state<{ name?: string; body?: string; description?: string }>({});
 
   // Delete confirmation
   let deleteConfirmId = $state<string | null>(null);
@@ -60,16 +161,38 @@
   // Body textarea ref for auto-resize
   let bodyTextarea = $state<HTMLTextAreaElement | null>(null);
 
+  // File watcher unlisten function
+  let _fsWatchUnlisten: (() => void) | null = null;
+
+  // Selected template (empty string = blank)
+  let selectedTemplate = $state<string>("");
+
   // 5. Derived
   let globalSkills = $derived(skills.filter((s) => s.scope === "global"));
   let projectSkills = $derived(skills.filter((s) => s.scope === "project"));
   let nestedSkills = $derived(skills.filter((s) => s.scope === "nested"));
 
   let bodyCharCount = $derived(formBody.length);
+  let bodyLineCount = $derived(formBody.split("\n").length);
+
+  // Inline live validation (separate from submit-time validateForm)
+  let nameInlineError = $derived.by(() => {
+    const slug = formName.trim();
+    if (!slug) return null;
+    if (slug.length > 64) return "Name must be lowercase letters, digits, and hyphens only. Max 64 chars.";
+    if (!/^[a-z][a-z0-9-]*$/.test(slug)) return "Name must be lowercase letters, digits, and hyphens only. Max 64 chars.";
+    return null;
+  });
+
+  let bodyLineWarning = $derived(
+    bodyLineCount > 500 ? "Body exceeds 500 lines. Trim to reduce agent context usage." : null
+  );
 
   let canSubmit = $derived(
     formName.trim().length > 0 &&
     formBody.trim().length > 0 &&
+    formDescription.trim().length > 0 &&
+    nameInlineError === null &&
     Object.keys(formErrors).length === 0
   );
 
@@ -142,8 +265,11 @@
     const slug = formName.trim();
     if (!slug) {
       errs.name = "Name is required.";
-    } else if (!/^[a-z][a-z0-9-]*$/.test(slug)) {
-      errs.name = "Use lowercase letters, numbers, and hyphens only.";
+    } else if (slug.length > 64 || !/^[a-z][a-z0-9-]*$/.test(slug)) {
+      errs.name = "Name must be lowercase letters, digits, and hyphens only. Max 64 chars.";
+    }
+    if (!formDescription.trim()) {
+      errs.description = "Description is required.";
     }
     if (!formBody.trim()) {
       errs.body = "Body is required.";
@@ -188,6 +314,19 @@
     formScope = "global";
     formWhenToUse = "";
     formBody = "";
+    formErrors = {};
+    selectedTemplate = "";
+  }
+
+  // ── Template selection ────────────────────────────────────────────────────
+  function applyTemplate(templateName: string) {
+    if (!templateName) return;
+    const tpl = SKILL_TEMPLATES.find((t) => t.name === templateName);
+    if (!tpl) return;
+    formName = tpl.name;
+    formDescription = tpl.description;
+    formBody = tpl.body;
+    formScope = "project";
     formErrors = {};
   }
 
@@ -264,8 +403,26 @@
   }
 
   // 8. Lifecycle
-  onMount(() => {
+  onMount(async () => {
     loadSkills();
+
+    // Set up file watcher for the skills directory (best-effort)
+    try {
+      await invoke("fs_watch", { path: "../../.claude/skills" });
+      const unlisten = await listen("fs:changed", () => {
+        loadSkills();
+      });
+      _fsWatchUnlisten = unlisten;
+    } catch {
+      // Silently ignore — directory may not exist
+    }
+  });
+
+  onDestroy(() => {
+    if (_fsWatchUnlisten) {
+      _fsWatchUnlisten();
+      _fsWatchUnlisten = null;
+    }
   });
 </script>
 
@@ -567,20 +724,40 @@
       </div>
 
       <form class="skill-form" onsubmit={(e) => { e.preventDefault(); submitForm(); }}>
+        <!-- Template selector (add mode only) -->
+        {#if dialogMode === "add"}
+          <div class="form-row">
+            <label class="form-label" for="skill-template">Template</label>
+            <select
+              id="skill-template"
+              class="form-select"
+              bind:value={selectedTemplate}
+              onchange={() => applyTemplate(selectedTemplate)}
+            >
+              <option value="">— Blank —</option>
+              {#each SKILL_TEMPLATES as tpl (tpl.name)}
+                <option value={tpl.name}>{tpl.name}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+
         <!-- Name -->
         <div class="form-row">
           <label class="form-label" for="skill-name">Name</label>
           <input
             id="skill-name"
             class="form-input"
-            class:input-error={!!formErrors.name}
+            class:input-error={!!formErrors.name || !!nameInlineError}
             type="text"
             placeholder="my-skill-name"
             bind:value={formName}
             required
           />
-          <span class="form-hint">Lowercase letters, numbers, and hyphens only.</span>
-          {#if formErrors.name}
+          <span class="form-hint">Lowercase letters, numbers, and hyphens only. Max 64 chars.</span>
+          {#if nameInlineError}
+            <span class="field-error">{nameInlineError}</span>
+          {:else if formErrors.name}
             <span class="field-error">{formErrors.name}</span>
           {/if}
         </div>
@@ -591,10 +768,14 @@
           <textarea
             id="skill-desc"
             class="form-textarea"
+            class:input-error={!!formErrors.description}
             rows={2}
             placeholder="Short description of what this skill does."
             bind:value={formDescription}
           ></textarea>
+          {#if formErrors.description}
+            <span class="field-error">{formErrors.description}</span>
+          {/if}
         </div>
 
         <!-- Scope -->
@@ -639,6 +820,9 @@
             bind:this={bodyTextarea}
             required
           ></textarea>
+          {#if bodyLineWarning}
+            <span class="field-warning">{bodyLineWarning}</span>
+          {/if}
           {#if formErrors.body}
             <span class="field-error">{formErrors.body}</span>
           {/if}
@@ -1189,6 +1373,11 @@
   }
 
   .field-error {
+    font-size: 11px;
+    color: var(--text-error);
+  }
+
+  .field-warning {
     font-size: 11px;
     color: var(--text-error);
   }

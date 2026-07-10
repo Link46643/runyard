@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X, GitBranch, ChevronDown, Cpu } from "lucide-svelte";
+  import { X, GitBranch, ChevronDown, Cpu, Menu, Plus } from "lucide-svelte";
   import { chatStore } from "../stores/chatStore.svelte.js";
   import ConversationList from "./chat/ConversationList.svelte";
   import ChatMessageList from "./chat/ChatMessageList.svelte";
@@ -8,6 +8,7 @@
   import { layoutEngine } from "./layoutStore.svelte.js";
   import { acpStore } from "../stores/acpStore.svelte.js";
   import { chatInputStore } from "../stores/chatInputStore.svelte.js";
+  import { invoke } from "@tauri-apps/api/core";
 
   let { tab }: { tab?: { props: Record<string, unknown> } } = $props();
 
@@ -16,6 +17,44 @@
   let branchMenuOpen = $state(false);
   let scrollToMessageId = $state<string | null>(null);
   let agentMenuOpen = $state(false);
+
+  // Task 3: Mobile sidebar toggle
+  let sidebarOpen = $state(false);
+
+  // Task 1: Branch new-branch inline input
+  let creatingBranch = $state(false);
+  let newBranchName = $state("");
+
+  async function confirmNewBranch() {
+    const name = newBranchName.trim();
+    if (!name || !activeConversation) return;
+    const lastMsgId = chatStore.messages[chatStore.messages.length - 1]?.id ?? "";
+    await invoke("chat_branch_create", {
+      conversationId: activeConversation.id,
+      name,
+      messageId: lastMsgId,
+    });
+    // Reload branches so the newly created one appears
+    await chatStore.loadBranches(activeConversation.id);
+    newBranchName = "";
+    creatingBranch = false;
+  }
+
+  function cancelNewBranch() {
+    newBranchName = "";
+    creatingBranch = false;
+  }
+
+  function relativeTime(ts: number): string {
+    const diffMs = Date.now() - ts;
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    return `${Math.floor(diffHr / 24)}d ago`;
+  }
 
   // ── Streaming: bridge ACP chunk events into chatStore messages ──────────────
   // When chatInputStore.isStreaming becomes true, we push an empty assistant
@@ -145,10 +184,21 @@
 </script>
 
 <div class="chat-panel">
-  <ConversationList onNewConversation={newConversation} />
+  <!-- Mobile sidebar overlay backdrop -->
+  {#if sidebarOpen}
+    <div class="sidebar-backdrop" onclick={() => (sidebarOpen = false)}></div>
+  {/if}
+
+  <div class="sidebar-wrapper" class:sidebar-open={sidebarOpen}>
+    <ConversationList onNewConversation={newConversation} />
+  </div>
 
   <div class="chat-main">
     <div class="chat-header">
+      <button class="hamburger-btn" onclick={() => (sidebarOpen = !sidebarOpen)} title="Toggle conversations">
+        <Menu size={15} strokeWidth={1.5} />
+      </button>
+
       <div class="agent-switcher-wrapper">
         {#if hasActiveAgent}
           <div
@@ -207,7 +257,7 @@
         {/if}
       {/if}
 
-      {#if chatStore.branches.length > 0}
+      {#if activeConversation}
         <div class="branch-menu-wrapper">
           <button class="branch-indicator" onclick={() => (branchMenuOpen = !branchMenuOpen)}>
             <GitBranch size={12} strokeWidth={1.5} />
@@ -215,12 +265,38 @@
             <ChevronDown size={11} strokeWidth={1.5} />
           </button>
           {#if branchMenuOpen}
-            <div class="branch-menu">
-              {#each chatStore.branches as branch (branch.id)}
-                <button class="branch-menu-item" onclick={() => jumpToBranch(branch.message_id)}>
-                  {branch.name}
+            <div class="branch-menu branch-menu--rich">
+              {#if chatStore.branches.length > 0}
+                {#each chatStore.branches as branch (branch.id)}
+                  <div class="branch-tree-item">
+                    <span class="branch-tree-icon"><GitBranch size={11} strokeWidth={1.5} /></span>
+                    <span class="branch-tree-name">{branch.name}</span>
+                    <span class="branch-tree-time">{relativeTime(branch.created_at)}</span>
+                    <button class="branch-jump-link" onclick={() => jumpToBranch(branch.message_id)}>Jump to</button>
+                  </div>
+                {/each}
+                <div class="branch-menu-divider"></div>
+              {/if}
+              {#if creatingBranch}
+                <div class="branch-new-row">
+                  <input
+                    class="branch-new-input"
+                    placeholder="Branch name…"
+                    bind:value={newBranchName}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter") confirmNewBranch();
+                      if (e.key === "Escape") cancelNewBranch();
+                    }}
+                    autofocus
+                  />
+                  <button class="branch-new-confirm" onclick={confirmNewBranch}>OK</button>
+                  <button class="branch-new-cancel" onclick={cancelNewBranch}>✕</button>
+                </div>
+              {:else}
+                <button class="branch-new-ghost" onclick={() => (creatingBranch = true)}>
+                  <Plus size={11} strokeWidth={1.5} /> New branch
                 </button>
-              {/each}
+              {/if}
             </div>
           {/if}
         </div>
@@ -594,5 +670,196 @@
 
   .dot-muted {
     background: var(--text-tertiary);
+  }
+
+  /* ── Task 1: Rich branch tree dropdown ──────────────────────────────────── */
+  .branch-menu--rich {
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 240px;
+  }
+
+  .branch-tree-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    color: var(--text);
+    font-size: var(--text-sm);
+    border-radius: var(--radius-1);
+  }
+
+  .branch-tree-item:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .branch-tree-icon {
+    color: var(--text-tertiary);
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .branch-tree-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .branch-tree-time {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .branch-jump-link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    padding: 0 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: var(--font-sans);
+  }
+
+  .branch-jump-link:hover {
+    text-decoration: underline;
+  }
+
+  .branch-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: var(--space-1) 0;
+  }
+
+  .branch-new-ghost {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-family: var(--font-sans);
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: var(--radius-1);
+  }
+
+  .branch-new-ghost:hover {
+    background: var(--bg-tertiary);
+    color: var(--text);
+  }
+
+  .branch-new-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .branch-new-input {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius-1);
+    color: var(--text);
+    font-size: var(--text-sm);
+    padding: 3px 6px;
+    font-family: var(--font-sans);
+    outline: none;
+  }
+
+  .branch-new-confirm,
+  .branch-new-cancel {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--text-xs);
+    padding: 2px 4px;
+    border-radius: var(--radius-1);
+    color: var(--text-secondary);
+  }
+
+  .branch-new-confirm:hover {
+    color: var(--text);
+    background: var(--bg-tertiary);
+  }
+
+  .branch-new-cancel:hover {
+    color: var(--text);
+    background: var(--bg-tertiary);
+  }
+
+  /* ── Task 3: Mobile layout ──────────────────────────────────────────────── */
+  .sidebar-wrapper {
+    display: contents;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .hamburger-btn {
+    display: none;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: var(--radius-1);
+    flex-shrink: 0;
+  }
+
+  .hamburger-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text);
+  }
+
+  @media (max-width: 768px) {
+    .hamburger-btn {
+      display: flex;
+    }
+
+    .sidebar-wrapper {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+      border-right: 1px solid var(--border);
+    }
+
+    .sidebar-wrapper.sidebar-open {
+      transform: translateX(0);
+    }
+
+    .sidebar-backdrop {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 49;
+      background: var(--bg);
+      opacity: 0.5;
+    }
+
+    .chat-panel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    :global(.chat-input-area) {
+      position: sticky;
+      bottom: 0;
+    }
   }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Search, Plus, Trash2 } from "lucide-svelte";
+  import { Search, Plus, Trash2, FolderInput } from "lucide-svelte";
   import { chatStore } from "../../stores/chatStore.svelte.js";
   import Modal from "../../Modal.svelte";
 
@@ -9,6 +9,9 @@
   let renameValue = $state("");
   let deleteTargetId = $state<string | null>(null);
   let showDeleteModal = $state(false);
+
+  // Task 2: Move-to-workspace popover state
+  let moveMenuId = $state<string | null>(null);
 
   function startRename(id: string, currentTitle: string) {
     renamingId = id;
@@ -36,6 +39,23 @@
   }
 
   const deleteTarget = $derived(chatStore.conversations.find((c) => c.id === deleteTargetId));
+
+  // Task 2: Derive unique workspace paths from existing conversations, plus fallbacks
+  const workspacePaths = $derived.by(() => {
+    const fromConvs = chatStore.conversations
+      .map((c) => c.workspace_path)
+      .filter((p) => p && p.trim() !== "");
+    const defaults = [".", "../../", "../.."];
+    const all = [...new Set([...fromConvs, ...defaults])];
+    return all;
+  });
+
+  async function moveToWorkspace(convId: string, path: string) {
+    await chatStore.moveConversation(convId, path);
+    moveMenuId = null;
+    // Reload conversations to reflect updated workspace_path
+    await chatStore.init();
+  }
 </script>
 
 <div class="conversation-list">
@@ -79,6 +99,32 @@
           </button>
         {/if}
         <span class="conv-meta">{conv.message_count} msgs</span>
+
+        <!-- Move to workspace -->
+        <div class="move-wrapper">
+          <button
+            class="icon-btn move-btn"
+            onclick={(e) => { e.stopPropagation(); moveMenuId = moveMenuId === conv.id ? null : conv.id; }}
+            title="Move to workspace"
+          >
+            <FolderInput size={12} strokeWidth={1.5} />
+          </button>
+          {#if moveMenuId === conv.id}
+            <div class="move-popover">
+              <div class="move-popover-title">Move to workspace</div>
+              {#each workspacePaths as path (path)}
+                <button
+                  class="move-popover-item"
+                  class:move-popover-item--active={conv.workspace_path === path}
+                  onclick={() => moveToWorkspace(conv.id, path)}
+                >
+                  {path}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
         <button class="icon-btn delete-btn" onclick={() => requestDelete(conv.id)} title="Delete">
           <Trash2 size={12} strokeWidth={1.5} />
         </button>
@@ -213,6 +259,59 @@
   }
   .conv-item:hover .delete-btn {
     opacity: 1;
+  }
+  .move-btn {
+    opacity: 0;
+  }
+  .conv-item:hover .move-btn {
+    opacity: 1;
+  }
+  .move-wrapper {
+    position: relative;
+  }
+  .move-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-1);
+    min-width: 160px;
+    z-index: 200;
+    padding: var(--space-1);
+  }
+  .move-popover-title {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    padding: 4px 8px 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--space-1);
+  }
+  .move-popover-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 5px 8px;
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    color: var(--text);
+    cursor: pointer;
+    border-radius: var(--radius-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .move-popover-item:hover {
+    background: var(--bg-tertiary);
+  }
+  .move-popover-item--active {
+    color: var(--accent);
   }
   .empty {
     padding: var(--space-5);

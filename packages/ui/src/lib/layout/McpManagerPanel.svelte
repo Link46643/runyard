@@ -1,6 +1,6 @@
 <script lang="ts">
   // 1. Imports
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     Plus,
     Upload,
@@ -10,6 +10,7 @@
     Trash2,
   } from "lucide-svelte";
   import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { webSocketClient } from "@runyard/common";
   import type { McpServerConfig, McpEnvVar, McpAuth } from "@runyard/common";
 
@@ -17,12 +18,36 @@
   type DialogMode = "add" | "edit" | null;
   type TransportKind = "stdio" | "http" | "websocket";
   type AuthKind = "none" | "bearer" | "api_key";
+  type DialogTab = "manual" | "registry";
 
   interface EnvVarRow {
     key: string;
     value: string;
     is_secret: boolean;
   }
+
+  interface RegistryServer {
+    id: string;
+    name: string;
+    description: string;
+    transport: TransportKind;
+    command: string;
+    envVars?: string[];
+  }
+
+  // ── Registry curated list ──────────────────────────────────────────────────
+  const POPULAR_MCP_SERVERS: RegistryServer[] = [
+    { id: "filesystem", name: "Filesystem", description: "Local filesystem read/write access. Configurable allowed directories.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-filesystem {DIRECTORY}" },
+    { id: "github", name: "GitHub", description: "GitHub API: repos, issues, PRs, search, file contents.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-github", envVars: ["GITHUB_PERSONAL_ACCESS_TOKEN"] },
+    { id: "brave-search", name: "Brave Search", description: "Web and local search via Brave Search API.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-brave-search", envVars: ["BRAVE_API_KEY"] },
+    { id: "slack", name: "Slack", description: "Slack workspace integration: channels, messages, users.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-slack", envVars: ["SLACK_BOT_TOKEN", "SLACK_TEAM_ID"] },
+    { id: "postgres", name: "PostgreSQL", description: "Read-only database access and schema inspection.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-postgres", envVars: ["DATABASE_URL"] },
+    { id: "google-maps", name: "Google Maps", description: "Geocoding, directions, place search.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-google-maps", envVars: ["GOOGLE_MAPS_API_KEY"] },
+    { id: "fetch", name: "Fetch (HTTP)", description: "Fetch any URL, convert HTML to markdown.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-fetch" },
+    { id: "puppeteer", name: "Puppeteer", description: "Browser automation, screenshots, web scraping.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-puppeteer" },
+    { id: "sqlite", name: "SQLite", description: "SQLite database access for local development.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-sqlite --db-path {DB_PATH}" },
+    { id: "linear", name: "Linear", description: "Linear issue tracker: teams, issues, projects, cycles.", transport: "stdio", command: "npx -y @modelcontextprotocol/server-linear", envVars: ["LINEAR_API_KEY"] },
+  ];
 
   // Dual-mode invoke (Tauri or WebSocket)
   async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -37,6 +62,9 @@
 
   // 4. State
   let servers = $state<McpServerConfig[]>([]);
+  // 1.8.6: health status per server name, updated from ACP session_info_update events.
+  // Agents report MCP server health in session/update session_info_update payloads.
+  let serverHealth = $state<Record<string, "active" | "error" | "unknown">>({});
   let isLoading = $state(false);
   let error = $state<string | null>(null);
 
@@ -61,6 +89,12 @@
 
   // Import file input ref
   let importFileInput = $state<HTMLInputElement | null>(null);
+
+  // Dialog tab state (manual / registry) — only for "add" mode
+  let dialogTab = $state<DialogTab>("manual");
+
+  // Validate format feedback
+  let validateMsg = $state<{ ok: boolean; text: string } | null>(null);
 
   // 5. Derived
   let canSubmit = $derived(
@@ -158,6 +192,7 @@
   function openAddDialog() {
     dialogMode = "add";
     editingServer = null;
+    dialogTab = "manual";
     resetForm();
   }
 
@@ -191,6 +226,48 @@
     formEnvVars = [];
     formIsGlobal = true;
     formErrors = {};
+    validateMsg = null;
+  }
+
+  // ── Registry: use a server ────────────────────────────────────────────────
+  function useRegistryServer(server: RegistryServer) {
+    formName = server.name;
+    formTransport = server.transport;
+    formCommand = server.command;
+    formUrl = "";
+    formAuthKind = "none";
+    formAuthToken = "";
+    formEnvVars = server.envVars
+      ? server.envVars.map((key) => ({ key, value: "", is_secret: true }))
+      : [];
+    formIsGlobal = true;
+    formErrors = {};
+    validateMsg = null;
+    dialogTab = "manual";
+  }
+
+  // ── Validate format ───────────────────────────────────────────────────────
+  function validateFormat() {
+    if (formTransport === "stdio") {
+      if (!formCommand.trim()) {
+        validateMsg = { ok: false, text: "Command is required for stdio transport." };
+      } else if (!/^[a-zA-Z]/.test(formCommand.trim())) {
+        validateMsg = { ok: false, text: "Command must start with a valid executable name." };
+      } else {
+        validateMsg = { ok: true, text: "Command format looks valid." };
+      }
+    } else {
+      const trimmed = formUrl.trim();
+      if (!trimmed) {
+        validateMsg = { ok: false, text: "URL is required." };
+      } else if (formTransport === "http" && !trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+        validateMsg = { ok: false, text: "URL must start with http:// or https://" };
+      } else if (formTransport === "websocket" && !trimmed.startsWith("ws://") && !trimmed.startsWith("wss://")) {
+        validateMsg = { ok: false, text: "URL must start with ws:// or wss://" };
+      } else {
+        validateMsg = { ok: true, text: "URL format looks valid." };
+      }
+    }
   }
 
   // ── Env vars ──────────────────────────────────────────────────────────────
@@ -293,8 +370,28 @@
   }
 
   // 8. Lifecycle
+  let _unlistenAcp: (() => void) | null = null;
   onMount(() => {
     loadServers();
+    // 1.8.6: Listen for ACP session_info_update events dispatched as CustomEvent
+    // by acpStore's event handler fallthrough (window.dispatchEvent).
+    const handler = (e: Event) => {
+      const payload = (e as CustomEvent).detail;
+      if (payload?.mcp_servers) {
+        // Agent reported MCP server health. Payload shape: { mcp_servers: [{name, status}] }
+        for (const srv of payload.mcp_servers) {
+          serverHealth = {
+            ...serverHealth,
+            [srv.name]: srv.status === "connected" ? "active" : srv.status === "error" ? "error" : "unknown",
+          };
+        }
+      }
+    };
+    window.addEventListener("acp:session_info_update", handler);
+    _unlistenAcp = () => window.removeEventListener("acp:session_info_update", handler);
+  });
+  onDestroy(() => {
+    _unlistenAcp?.();
   });
 </script>
 
@@ -436,6 +533,56 @@
         </h2>
         <button class="btn-icon" onclick={closeDialog} aria-label="Close">✕</button>
       </div>
+
+      <!-- Tab bar — only on add mode -->
+      {#if dialogMode === "add"}
+        <div class="dialog-tabs">
+          <button
+            type="button"
+            class="dialog-tab"
+            class:dialog-tab--active={dialogTab === "manual"}
+            onclick={() => { dialogTab = "manual"; }}
+          >
+            Manual
+          </button>
+          <button
+            type="button"
+            class="dialog-tab"
+            class:dialog-tab--active={dialogTab === "registry"}
+            onclick={() => { dialogTab = "registry"; }}
+          >
+            Registry
+          </button>
+        </div>
+      {/if}
+
+      <!-- Registry tab content -->
+      {#if dialogMode === "add" && dialogTab === "registry"}
+        <div class="registry-list">
+          {#each POPULAR_MCP_SERVERS as srv (srv.id)}
+            <div class="registry-card">
+              <div class="registry-card-info">
+                <span class="registry-card-name">{srv.name}</span>
+                <span class="registry-card-desc">{srv.description}</span>
+                {#if srv.envVars && srv.envVars.length > 0}
+                  <div class="registry-card-envs">
+                    {#each srv.envVars as ev (ev)}
+                      <span class="badge env-badge">{ev}</span>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+              <button
+                type="button"
+                class="btn-primary btn-sm"
+                onclick={() => useRegistryServer(srv)}
+              >
+                Use
+              </button>
+            </div>
+          {/each}
+        </div>
+      {:else}
 
       <form class="server-form" onsubmit={(e) => { e.preventDefault(); submitForm(); }}>
         <!-- Name -->
@@ -613,11 +760,20 @@
 
         <div class="form-footer">
           <button type="button" class="btn-ghost" onclick={closeDialog}>Cancel</button>
+          <button type="button" class="btn-ghost" onclick={validateFormat}>
+            Validate format
+          </button>
+          {#if validateMsg !== null}
+            <span class="validate-msg" class:validate-ok={validateMsg.ok} class:validate-err={!validateMsg.ok}>
+              {validateMsg.text}
+            </span>
+          {/if}
           <button type="submit" class="btn-primary" disabled={!canSubmit}>
             {dialogMode === "edit" ? "Save changes" : "Add server"}
           </button>
         </div>
       </form>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1108,9 +1264,112 @@
   /* Form footer */
   .form-footer {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
     padding-top: 4px;
     border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  /* Validate feedback */
+  .validate-msg {
+    font-size: 11px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .validate-ok {
+    color: var(--text-success);
+  }
+
+  .validate-err {
+    color: var(--text-error);
+  }
+
+  /* Dialog tabs */
+  .dialog-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dialog-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    margin-bottom: -1px;
+  }
+
+  .dialog-tab:hover {
+    color: var(--text);
+  }
+
+  .dialog-tab--active {
+    border-bottom-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* Registry list */
+  .registry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  .registry-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2);
+    background: var(--bg-secondary);
+  }
+
+  .registry-card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .registry-card-name {
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .registry-card-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .registry-card-envs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .env-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    padding: 1px 5px;
+    border-radius: var(--radius-1);
   }
 </style>
