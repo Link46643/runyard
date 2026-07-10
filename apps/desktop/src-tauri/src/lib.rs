@@ -56,6 +56,7 @@ pub fn run() {
             runyard_core::chat_db::chat_messages_load,
             runyard_core::chat_db::chat_message_insert,
             runyard_core::chat_db::chat_message_update,
+            runyard_core::chat_db::chat_message_set_pinned,
             runyard_core::chat_db::chat_search,
             runyard_core::chat_db::chat_branch_create,
             runyard_core::chat_db::chat_branch_list,

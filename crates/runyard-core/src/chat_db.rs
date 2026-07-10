@@ -29,6 +29,7 @@ pub struct DbMessage {
     pub role: String,
     pub content: Value,
     pub created_at: i64,
+    pub is_pinned: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -96,6 +97,7 @@ pub fn init_db() -> SqlResult<()> {
             role TEXT NOT NULL,
             content BLOB NOT NULL,
             created_at INTEGER NOT NULL,
+            is_pinned INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
         )",
         [],
@@ -144,6 +146,7 @@ fn run_migrations(conn: &Connection) -> SqlResult<()> {
     let _ = conn.execute("ALTER TABLE conversations ADD COLUMN message_count INTEGER DEFAULT 0", []);
     let _ = conn.execute("ALTER TABLE conversations ADD COLUMN total_tokens_used INTEGER DEFAULT 0", []);
     let _ = conn.execute("ALTER TABLE conversations ADD COLUMN total_cost REAL DEFAULT 0.0", []);
+    let _ = conn.execute("ALTER TABLE messages ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0", []);
     Ok(())
 }
 
@@ -365,7 +368,7 @@ pub fn chat_conversation_delete(id: String) -> Result<(), String> {
 #[tauri::command]
 pub fn chat_messages_load(conversation_id: String, page: Option<u32>, limit: Option<u32>) -> Result<Vec<DbMessage>, String> {
     let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
-    let mut query_str = "SELECT id, conversation_id, parent_id, role, content, created_at FROM messages WHERE conversation_id = ?1 ORDER BY created_at ASC".to_string();
+    let mut query_str = "SELECT id, conversation_id, parent_id, role, content, created_at, is_pinned FROM messages WHERE conversation_id = ?1 ORDER BY created_at ASC".to_string();
     let mut params_vec: Vec<rusqlite::types::Value> = vec![conversation_id.into()];
 
     if let Some(lim) = limit {
@@ -392,6 +395,7 @@ pub fn chat_messages_load(conversation_id: String, page: Option<u32>, limit: Opt
             role: row.get(3)?,
             content: content_val,
             created_at: row.get(5)?,
+            is_pinned: row.get(6)?,
         })
     }).map_err(|e| e.to_string())?;
 
@@ -437,6 +441,7 @@ pub fn chat_message_insert(conversation_id: String, parent_id: Option<String>, r
         role,
         content,
         created_at: now,
+        is_pinned: false,
     })
 }
 
@@ -458,7 +463,7 @@ pub fn chat_message_update(id: String, mut content: Value) -> Result<DbMessage, 
         params![content_text, id],
     ).map_err(|e| e.to_string())?;
 
-    let mut stmt = conn.prepare("SELECT id, conversation_id, parent_id, role, content, created_at FROM messages WHERE id = ?1")
+    let mut stmt = conn.prepare("SELECT id, conversation_id, parent_id, role, content, created_at, is_pinned FROM messages WHERE id = ?1")
         .map_err(|e| e.to_string())?;
     let msg = stmt.query_row(params![id], |row| {
         let content_bytes: Vec<u8> = row.get(4)?;
@@ -471,6 +476,35 @@ pub fn chat_message_update(id: String, mut content: Value) -> Result<DbMessage, 
             role: row.get(3)?,
             content: content_val,
             created_at: row.get(5)?,
+            is_pinned: row.get(6)?,
+        })
+    }).map_err(|e| e.to_string())?;
+
+    Ok(msg)
+}
+
+#[tauri::command]
+pub fn chat_message_set_pinned(id: String, is_pinned: bool) -> Result<DbMessage, String> {
+    let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE messages SET is_pinned = ?1 WHERE id = ?2",
+        params![is_pinned, id],
+    ).map_err(|e| e.to_string())?;
+
+    let mut stmt = conn.prepare("SELECT id, conversation_id, parent_id, role, content, created_at, is_pinned FROM messages WHERE id = ?1")
+        .map_err(|e| e.to_string())?;
+    let msg = stmt.query_row(params![id], |row| {
+        let content_bytes: Vec<u8> = row.get(4)?;
+        let content_str = decompress_content(&content_bytes).unwrap_or_else(|_| String::new());
+        let content_val = serde_json::from_str(&content_str).unwrap_or(Value::Null);
+        Ok(DbMessage {
+            id: row.get(0)?,
+            conversation_id: row.get(1)?,
+            parent_id: row.get(2)?,
+            role: row.get(3)?,
+            content: content_val,
+            created_at: row.get(5)?,
+            is_pinned: row.get(6)?,
         })
     }).map_err(|e| e.to_string())?;
 
@@ -481,7 +515,7 @@ pub fn chat_message_update(id: String, mut content: Value) -> Result<DbMessage, 
 pub fn chat_search(query: String) -> Result<Vec<DbMessage>, String> {
     let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT m.id, m.conversation_id, m.parent_id, m.role, m.content, m.created_at 
+        "SELECT m.id, m.conversation_id, m.parent_id, m.role, m.content, m.created_at, m.is_pinned
          FROM messages m
          JOIN messages_fts fts ON m.id = fts.message_id
          WHERE fts.content_text MATCH ?1
@@ -499,6 +533,7 @@ pub fn chat_search(query: String) -> Result<Vec<DbMessage>, String> {
             role: row.get(3)?,
             content: content_val,
             created_at: row.get(5)?,
+            is_pinned: row.get(6)?,
         })
     }).map_err(|e| e.to_string())?;
 

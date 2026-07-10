@@ -125,6 +125,7 @@ export interface Message {
   role: MessageRole;
   content: ContentBlock[];
   created_at: number;
+  is_pinned: boolean;
 }
 
 export interface Branch {

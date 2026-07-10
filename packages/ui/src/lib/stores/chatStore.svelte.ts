@@ -236,6 +236,18 @@ class ChatStore {
     }
   }
 
+  async setMessagePinned(id: string, isPinned: boolean) {
+    try {
+      const updated = await invoke<Message>("chat_message_set_pinned", {
+        id,
+        is_pinned: isPinned
+      });
+      this.messages = this.messages.map((m) => (m.id === id ? updated : m));
+    } catch (e) {
+      console.error("[ChatStore] Failed to set message pinned state", e);
+    }
+  }
+
   async searchMessages(query: string): Promise<Message[]> {
     try {
       return await invoke<Message[]>("chat_search", { query });
