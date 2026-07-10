@@ -14,3 +14,11 @@ portable-pty = "0.8"
 uuid = { version = "1", features = ["v4"] }
 dirs = "5"
 which = "6"
+rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = "0.4"
+ssh2 = "0.9"
+zstd = "0.13"
+base64 = "0.22"
+
+
+

@@ -5,8 +5,10 @@
   import { lspStore } from "./lspStore.svelte.js";
   import { GitBranch, CircleDot } from "lucide-svelte";
 
+  import { webSocketClient } from "@runyard/common";
+
   let fileEncoding = $state<string>("UTF-8");
-  let connectionState = $state<string>("Local");
+  let connectionState = $state<"connected" | "connecting" | "disconnected">("disconnected");
 
   // Derive active LSP languages and their statuses
   let lspBadges = $derived(
@@ -33,6 +35,11 @@
   }
 
   onMount(async () => {
+    // Dynamic connection status tracking
+    const unsub = webSocketClient.onStatusChange((status) => {
+      connectionState = status;
+    });
+
     try {
       const res = await invoke<string | null>("git_branch", { path: "../../" });
       if (res) {
@@ -45,12 +52,23 @@
 
     // Init LSP store event listener
     await lspStore.init();
+
+    return unsub;
   });
 </script>
 
 <div class="status-bar">
   <div class="left">
-    <div class="item connection">{connectionState}</div>
+    <button 
+      class="item connection status-{connectionState}" 
+      onclick={() => {
+        // Find a way to open settings connection panel, e.g. dispatch command or custom logic.
+        // We'll let the user click it to toggle settings or custom alert.
+        console.log("Connection details requested");
+      }}
+    >
+      {connectionState}
+    </button>
     <div class="item git">
       <span class="icon"><GitBranch size={12} strokeWidth={2} /></span>
       {appStatus.gitBranch}
@@ -120,17 +138,32 @@
   }
 
   .connection {
-    background-color: var(--accent);
+    border: none;
+    outline: none;
     color: #ffffff;
     font-weight: 700;
     padding: 0 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .connection.status-connected {
+    background-color: var(--accent-success, #22c55e);
+  }
+
+  .connection.status-connecting {
+    background-color: var(--accent-warning, #eab308);
+  }
+
+  .connection.status-disconnected {
+    background-color: var(--border-error, #ef4444);
   }
 
   .connection:hover {
-    background-color: var(--accent);
-    filter: contrast(1.1);
+    filter: contrast(1.2);
   }
 
   .git {

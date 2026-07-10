@@ -8,15 +8,34 @@ class WebSocketClient {
   private queuedRequests: string[] = [];
   private isConnecting = false;
 
+  private statusListeners = new Set<(status: "connected" | "connecting" | "disconnected") => void>();
+  public status: "connected" | "connecting" | "disconnected" = "disconnected";
+
   constructor() {
     if (typeof window !== "undefined") {
       this.connect();
     }
   }
 
+  private setStatus(newStatus: "connected" | "connecting" | "disconnected") {
+    this.status = newStatus;
+    for (const listener of this.statusListeners) {
+      listener(newStatus);
+    }
+  }
+
+  public onStatusChange(callback: (status: "connected" | "connecting" | "disconnected") => void) {
+    this.statusListeners.add(callback);
+    callback(this.status);
+    return () => {
+      this.statusListeners.delete(callback);
+    };
+  }
+
   private connect() {
     if (this.ws || this.isConnecting) return;
     this.isConnecting = true;
+    this.setStatus("connecting");
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host; // e.g. localhost:7820
@@ -37,6 +56,7 @@ class WebSocketClient {
     socket.onopen = () => {
       console.log("[WebSocketClient] Connection open");
       this.isConnecting = false;
+      this.setStatus("connected");
       // Send queued messages
       for (const msg of this.queuedRequests) {
         socket.send(msg);
@@ -77,6 +97,7 @@ class WebSocketClient {
       console.log("[WebSocketClient] Connection closed. Retrying in 2 seconds...");
       this.ws = null;
       this.isConnecting = false;
+      this.setStatus("disconnected");
       setTimeout(() => this.connect(), 2000);
     };
 

@@ -2,6 +2,11 @@ use runyard_core::{TerminalState, LspState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Initialize SQLite database files
+    if let Err(e) = runyard_core::chat_db::init_db() {
+        eprintln!("[Tauri] Failed to initialize SQLite chat.db: {}", e);
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         // Managed state: terminal sessions and LSP servers
@@ -43,8 +48,24 @@ pub fn run() {
             runyard_core::lsp_manager::lsp_stop,
             runyard_core::lsp_manager::lsp_status,
             runyard_core::lsp_manager::lsp_status_all,
+            // ── Chat Database ───────────────────────────────────────────
+            runyard_core::chat_db::chat_conversation_list,
+            runyard_core::chat_db::chat_conversation_create,
+            runyard_core::chat_db::chat_conversation_update,
+            runyard_core::chat_db::chat_conversation_delete,
+            runyard_core::chat_db::chat_messages_load,
+            runyard_core::chat_db::chat_message_insert,
+            runyard_core::chat_db::chat_message_update,
+            runyard_core::chat_db::chat_search,
+            runyard_core::chat_db::chat_branch_create,
+            runyard_core::chat_db::chat_branch_list,
+            runyard_core::chat_db::chat_branch_delete,
+            runyard_core::chat_db::chat_pinned_context_load,
+            runyard_core::chat_db::chat_pinned_context_save,
+            runyard_core::chat_db::chat_pinned_context_delete,
             // ── Misc ────────────────────────────────────────────────────
             runyard_core::commands::get_home_dir,
+            runyard_core::commands::ssh_bootstrap,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

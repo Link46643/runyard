@@ -290,4 +290,30 @@
   });
 </script>
 
-<Layout node={layoutEngine.layout.root} />
+{#if platform.current === "mobile"}
+  <div style="display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+    <div style="flex: 1; min-height: 0; overflow: hidden; position: relative;">
+      <Layout node={layoutEngine.layout.root} />
+    </div>
+    <div style="height: 48px; background: var(--bg-secondary); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; z-index: 1000; flex-shrink: 0;">
+      <button style="background: none; border: none; color: var(--text); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;" onclick={() => {
+        // Toggle view / open explorer / settings
+        console.log("Explorer selected");
+      }}>
+        <span style="font-weight: 600;">Files</span>
+      </button>
+      <button style="background: none; border: none; color: var(--text); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;" onclick={() => {
+        layoutEngine.openTerminal();
+      }}>
+        <span style="font-weight: 600;">Terminal</span>
+      </button>
+      <button style="background: none; border: none; color: var(--text); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;" onclick={() => {
+        layoutEngine.openSettings();
+      }}>
+        <span style="font-weight: 600;">Settings</span>
+      </button>
+    </div>
+  </div>
+{:else}
+  <Layout node={layoutEngine.layout.root} />
+{/if}

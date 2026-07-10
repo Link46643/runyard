@@ -365,6 +365,37 @@ async fn handle_connection(
             None => path,
         };
 
+        // Handle GET /health endpoint
+        if clean_path == "/health" {
+            // Build response body while holding the lock, then drop before await
+            let response = {
+                let active = state.active_session.lock().unwrap();
+                let session_status = if let Some(ref s) = *active {
+                    serde_json::json!({
+                        "connected": true,
+                        "session_id": s.session_id
+                    })
+                } else {
+                    serde_json::json!({
+                        "connected": false
+                    })
+                };
+                // guard dropped here at end of block
+                let response_body = serde_json::json!({
+                    "status": "ok",
+                    "session": session_status,
+                    "version": env!("CARGO_PKG_VERSION"),
+                }).to_string();
+                format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    response_body.len(),
+                    response_body
+                )
+            }; // MutexGuard dropped here — safe to await
+            stream.write_all(response.as_bytes()).await?;
+            return Ok(());
+        }
+
         // Normalize path
         let mut asset_path = if clean_path == "/" || clean_path.is_empty() {
             "index.html".to_string()
@@ -398,6 +429,7 @@ async fn handle_connection(
         }
 
         Ok(())
+
     }
 }
 
@@ -625,8 +657,81 @@ async fn handle_rpc_message(
             get_home_dir().map(|r| serde_json::to_value(r).unwrap())
         }
 
+        // ── Chat Database ────────────────────────────────────────────────────
+        "chat_conversation_list" => {
+            runyard_core::chat_db::chat_conversation_list().map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_conversation_create" => {
+            let p: ChatConversationCreateParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_conversation_create(
+                p.title,
+                p.model,
+                p.workspace_path,
+                p.provider,
+                p.system_prompt,
+                p.context_budget,
+            ).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_conversation_update" => {
+            let p: ChatConversationUpdateParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_conversation_update(
+                p.id,
+                p.title,
+                p.model,
+                p.provider,
+                p.system_prompt,
+                p.context_budget,
+                p.workspace_path,
+            ).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_conversation_delete" => {
+            let p: ChatConversationDeleteParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_conversation_delete(p.id).map(|_| Value::Null)
+        }
+        "chat_messages_load" => {
+            let p: ChatMessagesLoadParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_messages_load(p.conversation_id, p.page, p.limit).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_message_insert" => {
+            let p: ChatMessageInsertParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_message_insert(p.conversation_id, p.parent_id, p.role, p.content).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_message_update" => {
+            let p: ChatMessageUpdateParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_message_update(p.id, p.content).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_search" => {
+            let p: ChatSearchParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_search(p.query).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_branch_create" => {
+            let p: ChatBranchCreateParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_branch_create(p.conversation_id, p.name, p.message_id).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_branch_list" => {
+            let p: ChatBranchListParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_branch_list(p.conversation_id).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_branch_delete" => {
+            let p: ChatBranchDeleteParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_branch_delete(p.id).map(|_| Value::Null)
+        }
+        "chat_pinned_context_load" => {
+            let p: ChatPinnedContextLoadParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_pinned_context_load(p.conversation_id).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_pinned_context_save" => {
+            let p: ChatPinnedContextSaveParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_pinned_context_save(p.conversation_id, p.file_path).map(|r| serde_json::to_value(r).unwrap())
+        }
+        "chat_pinned_context_delete" => {
+            let p: ChatPinnedContextDeleteParams = serde_json::from_value(params)?;
+            runyard_core::chat_db::chat_pinned_context_delete(p.id).map(|_| Value::Null)
+        }
+
         _ => Err(format!("Method not found: {}", method)),
     };
+
 
     // Return response
     let response = match result {
@@ -778,4 +883,78 @@ struct LspStatusParams {
 struct SettingsSaveParams {
     settings: runyard_core::settings::RunyardSettings,
 }
+
+#[derive(Deserialize)]
+struct ChatConversationCreateParams {
+    title: String,
+    model: String,
+    workspace_path: Option<String>,
+    provider: Option<String>,
+    system_prompt: Option<String>,
+    context_budget: Option<i64>,
+}
+#[derive(Deserialize)]
+struct ChatConversationUpdateParams {
+    id: String,
+    title: Option<String>,
+    model: Option<String>,
+    provider: Option<String>,
+    system_prompt: Option<String>,
+    context_budget: Option<i64>,
+    workspace_path: Option<String>,
+}
+#[derive(Deserialize)]
+struct ChatConversationDeleteParams {
+    id: String,
+}
+#[derive(Deserialize)]
+struct ChatMessagesLoadParams {
+    conversation_id: String,
+    page: Option<u32>,
+    limit: Option<u32>,
+}
+#[derive(Deserialize)]
+struct ChatMessageInsertParams {
+    conversation_id: String,
+    parent_id: Option<String>,
+    role: String,
+    content: Value,
+}
+#[derive(Deserialize)]
+struct ChatMessageUpdateParams {
+    id: String,
+    content: Value,
+}
+#[derive(Deserialize)]
+struct ChatSearchParams {
+    query: String,
+}
+#[derive(Deserialize)]
+struct ChatBranchCreateParams {
+    conversation_id: String,
+    name: String,
+    message_id: String,
+}
+#[derive(Deserialize)]
+struct ChatBranchListParams {
+    conversation_id: String,
+}
+#[derive(Deserialize)]
+struct ChatBranchDeleteParams {
+    id: String,
+}
+#[derive(Deserialize)]
+struct ChatPinnedContextLoadParams {
+    conversation_id: String,
+}
+#[derive(Deserialize)]
+struct ChatPinnedContextSaveParams {
+    conversation_id: String,
+    file_path: String,
+}
+#[derive(Deserialize)]
+struct ChatPinnedContextDeleteParams {
+    id: String,
+}
+
 
