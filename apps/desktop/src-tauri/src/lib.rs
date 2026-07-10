@@ -8,6 +8,13 @@ pub fn run() {
             // Panic on failure so errors are never silently swallowed.
             runyard_core::chat_db::init_db()
                 .expect("[Tauri] FATAL: Failed to initialize SQLite chat.db");
+            // Initialize ACP agent registry tables (Phase 1.6.1).
+            {
+                let conn = rusqlite::Connection::open(runyard_core::chat_db::get_db_path())
+                    .expect("[Tauri] FATAL: Failed to open chat.db for ACP agent table init");
+                runyard_core::acp_agent_db::init_acp_agent_tables(&conn)
+                    .expect("[Tauri] FATAL: Failed to initialize ACP agent tables");
+            }
             // ACP connection pool + event-forwarding task (Phase 1.6/1.7).
             // Needs a real AppHandle to emit events, so it's set up here
             // rather than via a plain .manage(Default::default()) call.

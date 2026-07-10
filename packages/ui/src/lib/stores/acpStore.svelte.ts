@@ -134,12 +134,12 @@ class AcpStore {
 
   async createAgent(params: {
     name: string;
-    agent_id: string;
+    agentId: string;
     transport: string;
-    executable_path?: string | null;
-    spawn_command?: string | null;
-    remote_url?: string | null;
-    env_vars?: Array<{ key: string; value: string; is_secret: boolean }>;
+    executablePath?: string | null;
+    spawnCommand?: string | null;
+    remoteUrl?: string | null;
+    envVars?: Array<{ key: string; value: string; isSecret: boolean }>;
   }) {
     this.error = null;
     try {
@@ -154,13 +154,13 @@ class AcpStore {
 
   async updateAgent(id: string, params: Partial<{
     name: string;
-    agent_id: string;
+    agentId: string;
     transport: string;
-    executable_path: string | null;
-    spawn_command: string | null;
-    remote_url: string | null;
-    env_vars: Array<{ key: string; value: string; is_secret: boolean }>;
-    is_active: boolean;
+    executablePath: string | null;
+    spawnCommand: string | null;
+    remoteUrl: string | null;
+    envVars: Array<{ key: string; value: string; isSecret: boolean }>;
+    isActive: boolean;
   }>) {
     this.error = null;
     try {
