@@ -2,12 +2,14 @@ use runyard_core::{TerminalState, LspState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize SQLite database files
-    if let Err(e) = runyard_core::chat_db::init_db() {
-        eprintln!("[Tauri] Failed to initialize SQLite chat.db: {}", e);
-    }
-
     tauri::Builder::default()
+        .setup(|_app| {
+            // Initialize SQLite database — runs after Tauri runtime is ready.
+            // Panic on failure so errors are never silently swallowed.
+            runyard_core::chat_db::init_db()
+                .expect("[Tauri] FATAL: Failed to initialize SQLite chat.db");
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         // Managed state: terminal sessions and LSP servers
         .manage(TerminalState::default())
