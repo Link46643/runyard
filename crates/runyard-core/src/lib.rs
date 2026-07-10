@@ -15,10 +15,16 @@ pub mod terminal;
 pub mod lsp_manager;
 pub mod chat_db;
 
+// Phase 1.6/1.7: ACP agent discovery & integration
+pub mod acp_agent_db;
+pub mod acp_bridge;
+pub mod acp_registry;
+
 
 // Re-export state types for Tauri setup
 pub use terminal::TerminalState;
 pub use lsp_manager::LspState;
+pub use acp_bridge::AcpBridgeState;
 
 pub trait EventBridge: Send + Sync + 'static {
     fn send_event(&self, event: &str, payload: serde_json::Value) -> Result<(), String>;

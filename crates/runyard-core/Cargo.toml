@@ -19,6 +19,16 @@ chrono = "0.4"
 ssh2 = "0.9"
 zstd = "0.13"
 base64 = "0.22"
+# ACP client (Phase 1.6/1.7) - the Tauri-free protocol crate this bridges to.
+runyard-acp = { path = "../runyard-acp" }
+# Tauri already depends on tokio internally; naming it directly lets
+# acp_bridge.rs call tokio::spawn for the long-lived event-forwarding task.
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+# New dependency, flagged for review (AGENTS.md requires approval for new
+# libraries): fetches the real ACP Registry JSON endpoint for 1.6.2's agent
+# discovery. rustls-tls backend (pure Rust, no OpenSSL) to match this app's
+# Windows/Linux/macOS cross-platform requirement.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
 
 
 

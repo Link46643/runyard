@@ -3,11 +3,15 @@ use runyard_core::{TerminalState, LspState};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .setup(|_app| {
+        .setup(|app| {
             // Initialize SQLite database — runs after Tauri runtime is ready.
             // Panic on failure so errors are never silently swallowed.
             runyard_core::chat_db::init_db()
                 .expect("[Tauri] FATAL: Failed to initialize SQLite chat.db");
+            // ACP connection pool + event-forwarding task (Phase 1.6/1.7).
+            // Needs a real AppHandle to emit events, so it's set up here
+            // rather than via a plain .manage(Default::default()) call.
+            app.manage(runyard_core::acp_bridge::init_acp_bridge(app.handle()));
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -70,6 +74,38 @@ pub fn run() {
             // ── Misc ────────────────────────────────────────────────────
             runyard_core::commands::get_home_dir,
             runyard_core::commands::ssh_bootstrap,
+            // ── ACP Agent Registry (1.6.1, 1.6.10) ───────────────────────
+            runyard_core::acp_agent_db::acp_agent_list,
+            runyard_core::acp_agent_db::acp_agent_get,
+            runyard_core::acp_agent_db::acp_agent_create,
+            runyard_core::acp_agent_db::acp_agent_update,
+            runyard_core::acp_agent_db::acp_agent_delete,
+            runyard_core::acp_agent_db::acp_agent_set_active,
+            runyard_core::acp_agent_db::acp_agent_set_status,
+            runyard_core::acp_agent_db::acp_agent_set_capabilities,
+            runyard_core::acp_agent_db::acp_agent_set_default_for_project,
+            runyard_core::acp_agent_db::acp_agent_get_default_for_project,
+            runyard_core::acp_agent_db::acp_agent_export,
+            runyard_core::acp_agent_db::acp_agent_import,
+            runyard_core::acp_agent_db::acp_agent_discover,
+            // ── ACP Registry API (1.6.2) ─────────────────────────────────
+            runyard_core::acp_registry::acp_agent_fetch_registry,
+            // ── ACP Bridge: connections + sessions (1.6.4-6, 1.7.6-14) ───
+            runyard_core::acp_bridge::acp_connect,
+            runyard_core::acp_bridge::acp_disconnect,
+            runyard_core::acp_bridge::acp_list_connections,
+            runyard_core::acp_bridge::acp_new_session,
+            runyard_core::acp_bridge::acp_load_session,
+            runyard_core::acp_bridge::acp_resume_session,
+            runyard_core::acp_bridge::acp_list_sessions,
+            runyard_core::acp_bridge::acp_close_session,
+            runyard_core::acp_bridge::acp_send_prompt,
+            runyard_core::acp_bridge::acp_cancel,
+            runyard_core::acp_bridge::acp_respond_permission,
+            runyard_core::acp_bridge::acp_set_mode,
+            runyard_core::acp_bridge::acp_set_config_option,
+            runyard_core::acp_bridge::acp_authenticate,
+            runyard_core::acp_bridge::acp_logout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

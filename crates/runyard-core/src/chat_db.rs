@@ -136,6 +136,9 @@ pub fn init_db() -> SqlResult<()> {
     // Run migrations to add columns in case the table existed previously
     run_migrations(&conn)?;
 
+    // Phase 1.6: ACP agent registry tables, same db file/connection setup.
+    crate::acp_agent_db::init_acp_agent_tables(&conn)?;
+
     Ok(())
 }
 
