@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { DiffBlock } from "@runyard/common";
-  import { parseUnifiedDiff, type ParsedDiffHunk } from "./diffParser.js";
+  import { parseUnifiedDiff, pairHunkLines, type ParsedDiffHunk } from "./diffParser.js";
+  import { Columns2, Rows2 } from "lucide-svelte";
 
   let { block }: { block: DiffBlock } = $props();
 
   let hunks = $state<ParsedDiffHunk[]>(parseUnifiedDiff(block.diff));
   let showUndo = $state(false);
+  let sideBySide = $state(false);
   let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
   function acceptHunk(id: string) {
@@ -37,9 +39,11 @@
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const current = await invoke<string>("fs_read", { path: block.filepath }).catch(() => "");
-      // Best-effort: if we can't reconstruct precisely, fall back to writing
-      // the accepted hunks' resulting lines directly for a single-hunk diff,
-      // which is the common case for agent-proposed edits.
+      // Best-effort reconstruction: works cleanly for the common single-hunk
+      // agent-edit case. For files with multiple hunks separated by large
+      // unchanged regions not captured in the diff context, this rebuilds
+      // only the hunk content and will not preserve surrounding untouched
+      // lines - a real limitation, not silently assumed correct.
       const rebuilt = acceptedHunks
         .map((h) => h.lines.filter((l) => l.type !== "del").map((l) => l.content).join("\n"))
         .join("\n");
@@ -56,6 +60,9 @@
   <div class="diff-header">
     <span class="filepath">{block.filepath}</span>
     <div class="spacer"></div>
+    <button class="icon-toggle" onclick={() => (sideBySide = !sideBySide)} title={sideBySide ? "Unified view" : "Side-by-side view"}>
+      {#if sideBySide}<Rows2 size={14} strokeWidth={1.5} />{:else}<Columns2 size={14} strokeWidth={1.5} />{/if}
+    </button>
     <button class="ghost-btn" onclick={acceptAll}>Accept all</button>
     <button class="ghost-btn" onclick={rejectAll}>Reject all</button>
     {#if allDecided}
@@ -65,14 +72,31 @@
   {#each hunks as hunk (hunk.id)}
     <div class="hunk" class:rejected={hunk.status === "rejected"}>
       {#if hunk.header}<div class="hunk-header">{hunk.header}</div>{/if}
-      <div class="hunk-lines">
-        {#each hunk.lines as line, i (i)}
-          <div class="diff-line" class:add={line.type === "add"} class:del={line.type === "del"}>
-            <span class="gutter">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
-            <span class="content">{line.content}</span>
-          </div>
-        {/each}
-      </div>
+      {#if sideBySide}
+        <div class="hunk-lines side-by-side">
+          {#each pairHunkLines(hunk.lines) as row, i (i)}
+            <div class="sbs-row">
+              <div class="diff-line" class:del={row.left?.type === "del"}>
+                <span class="gutter">{row.left ? (row.left.type === "del" ? "-" : " ") : ""}</span>
+                <span class="content">{row.left?.content ?? ""}</span>
+              </div>
+              <div class="diff-line" class:add={row.right?.type === "add"}>
+                <span class="gutter">{row.right ? (row.right.type === "add" ? "+" : " ") : ""}</span>
+                <span class="content">{row.right?.content ?? ""}</span>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="hunk-lines">
+          {#each hunk.lines as line, i (i)}
+            <div class="diff-line" class:add={line.type === "add"} class:del={line.type === "del"}>
+              <span class="gutter">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
+              <span class="content">{line.content}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
       <div class="hunk-actions">
         {#if hunk.status === "pending"}
           <button class="ghost-btn small" onclick={() => acceptHunk(hunk.id)}>Accept hunk</button>
@@ -110,6 +134,19 @@
   }
   .spacer {
     flex: 1;
+  }
+  .icon-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-1);
+    padding: 3px 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  .icon-toggle:hover {
+    color: var(--text);
   }
   .ghost-btn {
     background: none;
@@ -169,6 +206,17 @@
   }
   .diff-line.del {
     background: var(--diff-del-bg);
+  }
+  .side-by-side {
+    display: flex;
+    flex-direction: column;
+  }
+  .sbs-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .sbs-row .diff-line:first-child {
+    border-right: 1px solid var(--border);
   }
   .hunk-actions {
     display: flex;

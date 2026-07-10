@@ -6,6 +6,11 @@
   let expanded = $state(false);
 
   let status = $derived(result ? (result.is_error ? "failed" : "completed") : "running");
+
+  function formatDuration(ms: number): string {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
 </script>
 
 <div class="tool-call-block">
@@ -14,6 +19,9 @@
     <span class="dot" class:running={status === "running"} class:completed={status === "completed"} class:failed={status === "failed"}></span>
     <span class="tool-name">{block.name}</span>
     <span class="tool-args-summary">{Object.keys(block.arguments).length} arg{Object.keys(block.arguments).length === 1 ? "" : "s"}</span>
+    {#if result?.duration_ms !== undefined}
+      <span class="tool-duration">Took {formatDuration(result.duration_ms)}</span>
+    {/if}
   </button>
   {#if expanded}
     <pre class="tool-args">{JSON.stringify(block.arguments, null, 2)}</pre>
@@ -70,6 +78,11 @@
   .tool-args-summary {
     font-size: var(--text-xs);
     color: var(--text-tertiary);
+  }
+  .tool-duration {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin-left: auto;
   }
   .tool-args {
     margin: 0;

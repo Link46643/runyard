@@ -12,7 +12,12 @@ import { indentWithTab } from "@codemirror/commands";
 export interface EditorOptions {
   parent: HTMLElement;
   doc: string;
-  filePath: string;
+  /** File path - used for language auto-detection by extension when `language` isn't given. */
+  filePath?: string;
+  /** Explicit language id (e.g. "typescript", "python", "rust", "go"). Takes precedence over filePath. */
+  language?: string;
+  /** Read-only mode - disables editing while keeping syntax highlighting. Used for chat code blocks. */
+  readOnly?: boolean;
   /** Optional LSP-related CodeMirror extensions (diagnostics, hover, completions, etc.) */
   lspExtensions?: Extension[];
   onChange?: (content: string) => void;
@@ -20,9 +25,25 @@ export interface EditorOptions {
   onSelectionChange?: (line: number, col: number) => void;
 }
 
-export function setupEditor(options: EditorOptions) {
-  const ext = options.filePath.split(".").pop()?.toLowerCase();
+function resolveLanguageExtension(options: EditorOptions): Extension | null {
+  const lang = (options.language ?? "").toLowerCase();
+  const ext = options.filePath?.split(".").pop()?.toLowerCase();
 
+  const isJs = lang === "javascript" || lang === "js" || lang === "jsx" || ext === "js" || ext === "jsx" || ext === "mjs" || ext === "cjs";
+  const isTs = lang === "typescript" || lang === "ts" || lang === "tsx" || ext === "ts" || ext === "tsx";
+  const isPy = lang === "python" || lang === "py" || ext === "py";
+  const isRust = lang === "rust" || lang === "rs" || ext === "rs";
+  const isGo = lang === "go" || lang === "golang" || ext === "go";
+
+  if (isTs) return javascript({ typescript: true, jsx: lang === "tsx" || ext === "tsx" });
+  if (isJs) return javascript({ typescript: false, jsx: lang === "jsx" || ext === "jsx" });
+  if (isPy) return python();
+  if (isRust) return rust();
+  if (isGo) return go();
+  return null;
+}
+
+export function setupEditor(options: EditorOptions) {
   const extensions: Extension[] = [
     basicSetup,
     oneDark,
@@ -46,18 +67,13 @@ export function setupEditor(options: EditorOptions) {
     }),
   ];
 
-  // Language auto-detection
-  if (ext === "js" || ext === "jsx" || ext === "mjs" || ext === "cjs") {
-    extensions.push(javascript({ typescript: false, jsx: ext === "jsx" }));
-  } else if (ext === "ts" || ext === "tsx") {
-    extensions.push(javascript({ typescript: true, jsx: ext === "tsx" }));
-  } else if (ext === "py") {
-    extensions.push(python());
-  } else if (ext === "rs") {
-    extensions.push(rust());
-  } else if (ext === "go") {
-    extensions.push(go());
+  if (options.readOnly) {
+    extensions.push(EditorView.editable.of(false));
   }
+
+  // Language auto-detection (explicit `language` wins over filePath extension)
+  const langExt = resolveLanguageExtension(options);
+  if (langExt) extensions.push(langExt);
 
   // LSP extensions (diagnostics, hover, completions, etc.)
   if (options.lspExtensions && options.lspExtensions.length > 0) {

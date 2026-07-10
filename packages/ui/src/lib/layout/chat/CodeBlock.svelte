@@ -1,11 +1,16 @@
 <script lang="ts">
   import type { CodeBlock } from "@runyard/common";
-  import { Copy, Check, CornerDownLeft, Save, WrapText } from "lucide-svelte";
+  import { Copy, Check, CornerDownLeft, Save, WrapText, Maximize2, Minimize2 } from "lucide-svelte";
+  import { setupEditor } from "@runyard/editor";
+  import { onDestroy } from "svelte";
 
   let { block, onExplain }: { block: CodeBlock; onExplain?: (code: string, language: string) => void } = $props();
 
   let copied = $state(false);
   let wordWrap = $state(false);
+  let expanded = $state(false);
+  let container: HTMLDivElement;
+  let editorInstance: ReturnType<typeof setupEditor> | null = null;
 
   async function copyCode() {
     try {
@@ -32,6 +37,33 @@
   }
 
   const lineCount = $derived(block.code.split("\n").length);
+
+  function mountEditor() {
+    if (editorInstance) {
+      editorInstance.destroy();
+      editorInstance = null;
+    }
+    if (!container) return;
+    editorInstance = setupEditor({
+      parent: container,
+      doc: block.code,
+      language: block.language,
+      readOnly: true,
+    });
+  }
+
+  $effect(() => {
+    // Re-mount when code, language, or wrap mode changes (wrap needs a CSS
+    // class on the scroller, handled separately, but code/language changes
+    // need a fresh editor since setupEditor doesn't support re-detecting language).
+    void block.code;
+    void block.language;
+    mountEditor();
+  });
+
+  onDestroy(() => {
+    editorInstance?.destroy();
+  });
 </script>
 
 <div class="code-block">
@@ -44,6 +76,11 @@
     <button class="icon-btn" onclick={() => (wordWrap = !wordWrap)} title="Toggle word wrap" aria-pressed={wordWrap}>
       <WrapText size={14} strokeWidth={1.5} />
     </button>
+    {#if lineCount > 20}
+      <button class="icon-btn" onclick={() => (expanded = !expanded)} title={expanded ? "Collapse" : "Expand"}>
+        {#if expanded}<Minimize2 size={14} strokeWidth={1.5} />{:else}<Maximize2 size={14} strokeWidth={1.5} />{/if}
+      </button>
+    {/if}
     {#if onExplain}
       <button class="icon-btn" onclick={() => onExplain?.(block.code, block.language)} title="Explain this code">Explain</button>
     {/if}
@@ -59,9 +96,12 @@
       {#if copied}<Check size={14} strokeWidth={1.5} />{:else}<Copy size={14} strokeWidth={1.5} />{/if}
     </button>
   </div>
-  <div class="code-content" class:wrap={wordWrap} class:tall={lineCount > 20}>
-    <pre><code>{block.code}</code></pre>
-  </div>
+  <div
+    bind:this={container}
+    class="code-content"
+    class:wrap={wordWrap}
+    class:expanded
+  ></div>
 </div>
 
 <style>
@@ -114,18 +154,20 @@
   .code-content {
     max-height: 400px;
     overflow: auto;
-  }
-  .code-content pre {
-    margin: 0;
-    padding: var(--space-4);
-  }
-  .code-content code {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
-    color: var(--text);
-    white-space: pre;
   }
-  .code-content.wrap code {
+  .code-content.expanded {
+    max-height: none;
+  }
+  .code-content :global(.cm-editor) {
+    height: 100%;
+  }
+  .code-content :global(.cm-scroller) {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .code-content.wrap :global(.cm-line) {
     white-space: pre-wrap;
     word-break: break-word;
   }

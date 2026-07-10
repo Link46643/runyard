@@ -68,6 +68,43 @@ export function parseUnifiedDiff(diff: string): ParsedDiffHunk[] {
   return hunks;
 }
 
+export interface PairedDiffRow {
+  left: ParsedDiffLine | null;
+  right: ParsedDiffLine | null;
+}
+
+/** Pairs up del/add lines side by side for the side-by-side diff view.
+ * Consecutive deletions and additions are zipped together; context lines
+ * appear identically on both sides. */
+export function pairHunkLines(lines: ParsedDiffLine[]): PairedDiffRow[] {
+  const rows: PairedDiffRow[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.type === "context") {
+      rows.push({ left: line, right: line });
+      i++;
+      continue;
+    }
+    // Collect a run of deletions followed by a run of additions
+    const dels: ParsedDiffLine[] = [];
+    while (i < lines.length && lines[i].type === "del") {
+      dels.push(lines[i]);
+      i++;
+    }
+    const adds: ParsedDiffLine[] = [];
+    while (i < lines.length && lines[i].type === "add") {
+      adds.push(lines[i]);
+      i++;
+    }
+    const max = Math.max(dels.length, adds.length);
+    for (let j = 0; j < max; j++) {
+      rows.push({ left: dels[j] ?? null, right: adds[j] ?? null });
+    }
+  }
+  return rows;
+}
+
 /** Reconstructs file content by applying only the accepted hunks' additions
  * on top of the original content lines. Best-effort: assumes hunks are
  * ordered and non-overlapping, which unified diffs always are. */
