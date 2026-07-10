@@ -96,26 +96,26 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 > \*\*Goal:\*\* The input area is a real editor, not a chat box — multi-line CodeMirror with markdown support, Enter for newlines, Cmd+Enter to send. @-mentions autocomplete files, symbols, skills, agents, and conversations. Drag-and-drop attachments support images, text, and PDF. The prompt enhancer can expand or specify a draft via a fast model. The context window visualizer shows a live token bar (green/amber/red), with auto-compression that summarizes old messages to stay within budget. Context is assembled intelligently: system + skills + pinned context first, then auto-gathered context (editor, tabs, recent files), then history up to 80%, leaving 20% for the response. Branching and conversation search are fully functional. Model switching works mid-conversation with cost preview.
 
-* \[ ] **1.5.1** Input area — Multi-line CodeMirror in markdown mode. Enter=newline, Ctrl/Cmd+Enter=send. Auto-resize 2-20 lines. Character count. **Done =** input feels like a real text editor, not a chat box.
-* \[ ] **1.5.2** `@` autocomplete — @file (fuzzy workspace files), @symbol (LSP/Tree-sitter), @skill (available skills), @agent (configured agents), @conversation (cross-reference). Renders as chips. **Done =** all five autocomplete types work.
-* \[ ] **1.5.3** Attachments — Drag-drop, clipboard paste, + button. Image, text, PDF support. Chips above input with remove. **Done =** files can be attached and sent.
-* \[ ] **1.5.4** Prompt enhancer — Toggle (wand icon). Sends draft to fast/cheap model. Expand/Specify modes. Preview card with Use/Original buttons. **Done =** enhancement works, original preserved.
-* \[ ] **1.5.5** Context window visualizer — Token bar: green/amber/red states. Hover breakdown. Auto-compression toggle. Manual Compress and Clear buttons. **Done =** user always knows context usage.
-* \[ ] **1.5.6** Context assembly — Priority-ordered builder: system + skills + pinned → auto (editor, tabs, recent) → history (fill 80%) → reserve 20% for response. **Done =** context is assembled correctly every send.
-* \[ ] **1.5.7** Context compression — Identify oldest messages exceeding budget. Summarize with fast model. Replace with ContextSummaryBlock. Preserve originals. Expandable. **Done =** compression works, originals retrievable.
-* \[ ] **1.5.8** Conversation branching — Fork from any message. Branch tree visualizer. Branch indicator in header. Named branches. **Done =** branching works, tree is navigable.
-* \[ ] **1.5.9** Conversation search — FTS5 full-text search across all conversations. Highlight matches. Jump to message. **Done =** search finds messages, jumps correctly.
-* \[ ] **1.5.10** Model switching — Per-conversation dropdown. Changeable mid-conversation. Cost preview. Context limit warning. **Done =** switching models works, warnings show.
-* [ ] **1.5.11`[DX]` Markdown preview toggle in input — Toggle button in input toolbar shows rendered preview above input. **Done =** preview toggle works.
-* [ ] **1.5.12`[DX]` Prompt enhancer cost tracking — Cost of enhancement tracked separately (typically <1% of main model cost). Shows in message footer. **Done =** enhancement cost visible.
+* \[x] **1.5.1** Input area — Multi-line CodeMirror in markdown mode. Enter=newline, Ctrl/Cmd+Enter=send. Auto-resize 2-20 lines. Character count. **Done =** input feels like a real text editor, not a chat box.
+* \[~] **1.5.2** `@` autocomplete — @file (fuzzy workspace files), @symbol (LSP/Tree-sitter), @skill (available skills), @agent (configured agents), @conversation (cross-reference). Renders as chips. **Done =** all five autocomplete types work.
+* \[x] **1.5.3** Attachments — Drag-drop, clipboard paste, + button. Image, text, PDF support. Chips above input with remove. **Done =** files can be attached and sent.
+* \[~] **1.5.4** Prompt enhancer — Toggle (wand icon). Sends draft to fast/cheap model. Expand/Specify modes. Preview card with Use/Original buttons. **Done =** enhancement works, original preserved.
+* \[x] **1.5.5** Context window visualizer — Token bar: green/amber/red states. Hover breakdown. Auto-compression toggle. Manual Compress and Clear buttons. **Done =** user always knows context usage.
+* \[~] **1.5.6** Context assembly — Priority-ordered builder: system + skills + pinned → auto (editor, tabs, recent) → history (fill 80%) → reserve 20% for response. **Done =** context is assembled correctly every send.
+* \[~] **1.5.7** Context compression — Identify oldest messages exceeding budget. Summarize with fast model. Replace with ContextSummaryBlock. Preserve originals. Expandable. **Done =** compression works, originals retrievable.
+* \[~] **1.5.8** Conversation branching — Fork from any message. Branch tree visualizer. Branch indicator in header. Named branches. **Done =** branching works, tree is navigable.
+* \[x] **1.5.9** Conversation search — FTS5 full-text search across all conversations. Highlight matches. Jump to message. **Done =** search finds messages, jumps correctly.
+* \[x] **1.5.10** Model switching — Per-conversation dropdown. Changeable mid-conversation. Cost preview. Context limit warning. **Done =** switching models works, warnings show.
+* [~] **1.5.11`[DX]` Markdown preview toggle in input — Toggle button in input toolbar shows rendered preview above input. **Done =** preview toggle works.
+* [~] **1.5.12`[DX]` Prompt enhancer cost tracking — Cost of enhancement tracked separately (typically <1% of main model cost). Shows in message footer. **Done =** enhancement cost visible.
 
-* [ ] **1.5.14`[DX]` Context compression settings — Auto-compress toggle (compress when >90% budget). Aggressiveness: Conservative vs Aggressive. Manual compress button. **Done =** settings work.
-* [ ] **1.5.15`[DX]` Context clear and reset — Clear context button (preserves system + pinned). Reset conversation (clears everything). Confirmation dialogs. **Done =** clear/reset work.
-* [ ] **1.5.16** Conversation move to workspace — Reassign active conversation to different workspace. **Done =** move works.
-* [ ] **1.5.17`[DX]` Mobile chat layout — <768px: conversation list slides from left (hamburger). Context bar collapses to token ring. Message actions on long-press. Input sticky at bottom. Autocomplete as bottom sheet. Code blocks/diffs scroll horizontally. **Done =** chat usable on mobile.
-* [ ] **1.5.18`[DX]` Chat keyboard shortcuts — Ctrl/Cmd+Enter = send. Ctrl/Cmd+K = focus conversation search. Ctrl/Cmd+Shift+N = new conversation. Ctrl/Cmd+Shift+[ ] = prev/next conversation tab. Ctrl/Cmd+L = focus chat input. Ctrl/Cmd+Shift+C = clear context. Ctrl/Cmd+Shift+B = branch from current message. Escape = close conversation list / autocomplete. **Done =** all shortcuts work.
-* [ ] **1.5.19`[DX]` Prompt enhancer preview card — Shows enhanced version with "Use enhanced" / "Send original" buttons. Original draft always preserved. **Done =** preview works.
-* [ ] **1.5.20`[DX]` Conversation tab system — Conversation tabs like editor tabs. Each tab = one conversation. Switchable. **Done =** tabs work.
+* [~] **1.5.14`[DX]` Context compression settings — Auto-compress toggle (compress when >90% budget). Aggressiveness: Conservative vs Aggressive. Manual compress button. **Done =** settings work.
+* [x] **1.5.15`[DX]` Context clear and reset — Clear context button (preserves system + pinned). Reset conversation (clears everything). Confirmation dialogs. **Done =** clear/reset work.
+* [~] **1.5.16** Conversation move to workspace — Reassign active conversation to different workspace. **Done =** move works.
+* [~] **1.5.17`[DX]` Mobile chat layout — <768px: conversation list slides from left (hamburger). Context bar collapses to token ring. Message actions on long-press. Input sticky at bottom. Autocomplete as bottom sheet. Code blocks/diffs scroll horizontally. **Done =** chat usable on mobile.
+* [x] **1.5.18`[DX]` Chat keyboard shortcuts — Ctrl/Cmd+Enter = send. Ctrl/Cmd+K = focus conversation search. Ctrl/Cmd+Shift+N = new conversation. Ctrl/Cmd+Shift+[ ] = prev/next conversation tab. Ctrl/Cmd+L = focus chat input. Ctrl/Cmd+Shift+C = clear context. Ctrl/Cmd+Shift+B = branch from current message. Escape = close conversation list / autocomplete. **Done =** all shortcuts work.
+* [~] **1.5.19`[DX]` Prompt enhancer preview card — Shows enhanced version with "Use enhanced" / "Send original" buttons. Original draft always preserved. **Done =** preview works.
+* [x] **1.5.20`[DX]` Conversation tab system — Conversation tabs like editor tabs. Each tab = one conversation. Switchable. **Done =** tabs work.
 
 
 ### 1.6 ACP Agent Discovery & Integration
@@ -187,16 +187,16 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 > **Reference:** `rmcp` crate (https://crates.io/crates/rmcp, v2.2.0, official Rust SDK). `rust-mcp-sdk` (https://github.com/rust-mcp-stack/rust-mcp-sdk, v0.9.0, community). See Protocol Research Reference doc for full MCP details.
 
-- [ ] **1.8.1`[P]` MCP config data model — `packages/common/src/mcp-config-types.ts`: `McpServerConfig`, `McpTransport` (stdio|http|websocket), `McpAuth`. SQLite schema: `mcp_servers` table with id, name, transport, command, url, env_vars_json, auth_json, is_global, is_active, project_id. **Done =** types defined, schema created.
-- [ ] **1.8.2`[P]` MCP server manager UI — `McpServerPanel.svelte`: list of configured MCP servers. Per-server: name, transport, status (configured|active|error), health indicator. Add server button: dialog with transport selection, command/URL input, env vars, auth. Edit/remove servers. Test connection button. Import/export config. **Done =** MCP server panel works.
-- [ ] **1.8.3`[P]` MCP server config → ACP pass-through — When user starts a chat session, pass `mcpServers` array to agent via ACP `session/new`. Agent receives configs and connects to MCP servers. IDE shows "MCP servers connected: 3" badge in chat header. **Done =** configs passed to agent.
-- [ ] **1.8.4`[P]` MCP tool call display in chat — When agent calls MCP tools, agent sends `toolCall` via ACP `session/update`. IDE renders tool call card: tool name, server name, arguments, status (running|completed|failed). Expandable JSON. Linked to parent message. **Done =** tool calls visible in chat.
-- [ ] **1.8.5`[P]` MCP tool permission integration — Agent may request permission for MCP tool calls via ACP `request_permission`. IDE shows permission card with tool details. User approves/denies. IDE records permission decision. **Done =** MCP tool permissions work.
-- [ ] **1.8.6`[P]` MCP server health monitoring — Agent reports MCP server health via ACP `session/update`. IDE shows server status: green (connected), yellow (starting), red (error). Hover for details. Auto-retry on failure. **Done =** health monitoring visible.
-- [ ] **1.8.7`[P]` MCP server global vs per-project — Global servers apply to all projects. Per-project servers only for specific project. UI toggle. SQLite stores scope. **Done =** scoping works.
-- [ ] **1.8.8`[P]` MCP server import from registry — Browse MCP Registry (`github.com/modelcontextprotocol/registry`). One-click install. Auto-configure transport. Popular servers: GitHub, PostgreSQL, Filesystem, Browser, Slack. **Done =** registry import works.
-- [ ] **1.8.9`[P]` MCP server config validation — Validate command exists (stdio). Validate URL reachable (HTTP). Validate auth credentials. Test connection on add. Show error with fix suggestion. **Done =** validation works.
-- [ ] **1.8.10`[P]` MCP server env var security — Store API keys, tokens in OS keychain. Masked display. Never in plaintext. Secure pass-through to agent. **Done =** env vars secure.
+- [x] **1.8.1`[P]` MCP config data model — `packages/common/src/mcp-config-types.ts`: `McpServerConfig`, `McpTransport` (stdio|http|websocket), `McpAuth`. SQLite schema: `mcp_servers` table with id, name, transport, command, url, env_vars_json, auth_json, is_global, is_active, project_id. **Done =** types defined, schema created.
+- [x] **1.8.2`[P]` MCP server manager UI — `McpServerPanel.svelte`: list of configured MCP servers. Per-server: name, transport, status (configured|active|error), health indicator. Add server button: dialog with transport selection, command/URL input, env vars, auth. Edit/remove servers. Test connection button. Import/export config. **Done =** MCP server panel works.
+- [x] **1.8.3`[P]` MCP server config → ACP pass-through — When user starts a chat session, pass `mcpServers` array to agent via ACP `session/new`. Agent receives configs and connects to MCP servers. IDE shows "MCP servers connected: 3" badge in chat header. **Done =** configs passed to agent.
+- [x] **1.8.4`[P]` MCP tool call display in chat — When agent calls MCP tools, agent sends `toolCall` via ACP `session/update`. IDE renders tool call card: tool name, server name, arguments, status (running|completed|failed). Expandable JSON. Linked to parent message. **Done =** tool calls visible in chat.
+- [x] **1.8.5`[P]` MCP tool permission integration — Agent may request permission for MCP tool calls via ACP `request_permission`. IDE shows permission card with tool details. User approves/denies. IDE records permission decision. **Done =** MCP tool permissions work.
+- [~] **1.8.6`[P]` MCP server health monitoring — Agent reports MCP server health via ACP `session/update`. IDE shows server status: green (connected), yellow (starting), red (error). Hover for details. Auto-retry on failure. **Done =** health monitoring visible.
+- [x] **1.8.7`[P]` MCP server global vs per-project — Global servers apply to all projects. Per-project servers only for specific project. UI toggle. SQLite stores scope. **Done =** scoping works.
+- [~] **1.8.8`[P]` MCP server import from registry — Browse MCP Registry (`github.com/modelcontextprotocol/registry`). One-click install. Auto-configure transport. Popular servers: GitHub, PostgreSQL, Filesystem, Browser, Slack. **Done =** registry import works.
+- [~] **1.8.9`[P]` MCP server config validation — Validate command exists (stdio). Validate URL reachable (HTTP). Validate auth credentials. Test connection on add. Show error with fix suggestion. **Done =** validation works.
+- [~] **1.8.10`[P]` MCP server env var security — Store API keys, tokens in OS keychain. Masked display. Never in plaintext. Secure pass-through to agent. **Done =** env vars secure.
 
 ### 1.9 Skills System
 
@@ -204,16 +204,16 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 > **Reference:** agentskills.io/specification.md, github.com/anthropics/skills. See Protocol Research Reference doc for full details.
 
-- [ ] **1.9.1`[P]` Skills data model — `packages/common/src/skills-types.ts`: `SkillManifest`, `SkillMetadata`, `SkillDirective`, `SkillScope` (global|project|nested). Directory structure: `SKILL.md` with YAML frontmatter + markdown body. `scripts/`, `references/`, `assets/` subdirs. SQLite schema: `skills` table with id, name, description, scope, directory_path, frontmatter_json, is_builtin, created_at, updated_at. **Done =** types defined, schema created, directory structure validated.
-- [ ] **1.9.2`[P]` Skills CRUD UI — `SkillsPanel.svelte`: list by scope (global/project). Create from template (10+ templates: code-review, debug, refactor, test, docs, deploy, etc.). Edit with markdown editor + frontmatter form (live validation). Preview rendered skill. Delete with confirmation. File watcher auto-reload. **Done =** skills manageable in UI.
-- [ ] **1.9.3`[P]` Skills chat integration — `@skill:<name>` autocomplete in chat input. Fuzzy match. Show description tooltip. Render as chip in input. On send, pass skill names to agent via ACP `session/prompt` metadata. Agent loads and triggers skills. **Done =** skills trigger and inject correctly.
-- [ ] **1.9.4`[P]` Skills directory scanning — Scan `~/.claude/skills/`, `.claude/skills/` (project), `.agents/skills/`, `.cursor/skills/` on startup and file change. Parse `SKILL.md` frontmatter. Validate naming (lowercase, hyphens, max 64 chars). Detect duplicates. Load into SQLite. **Done =** scanning works, all directories covered.
-- [ ] **1.9.5`[P]` Skills YAML frontmatter validation — Validate required fields: `name`, `description`. Validate constraints: name matches directory, 1-64 chars, lowercase alphanumeric + hyphens. Validate optional fields: `when_to_use`, `arguments`, `allowed-tools`, `model`, `effort`, `shell`, `license`. Size check: body < 500 lines. Lint errors shown in UI. **Done =** validation works, errors shown.
-- [ ] **1.9.6`[P]` Skills progressive disclosure metadata — Extract Level 1 (metadata: name + description, ~100 tokens) from all skills. Send to agent as catalog via ACP `session/new` or `session/set_config_option`. Agent uses catalog to decide which skills to trigger. **Done =** metadata always available to agent.
-- [ ] **1.9.7`[P]` Skills cross-compatibility loading — Load skills from `.claude/skills/` (Claude Code), `.cursor/skills/` (Cursor 2.0+ MDC hybrid), `.agents/skills/` (cross-client convention). Convert Cursor MDC frontmatter to standard format. Save in standard format. **Done =** skills portable across clients.
-- [ ] **1.9.8`[P]` Skills template library — Built-in templates: `code-review`, `debug`, `refactor`, `test-generation`, `documentation`, `deployment`, `api-migration`, `security-audit`, `performance-optimize`. Each with pre-filled SKILL.md, scripts, references. **Done =** templates available.
-- [ ] **1.9.9`[P]` Skills file watcher — Watch skill directories for changes. Auto-reload on add/edit/delete. Notify agent of changes. Update UI in real-time. **Done =** watcher works.
-- [ ] **1.9.10`[P]` Skills CLI validation integration — Integrate `claude-skills-cli` (npm) for validation: `pnpx claude-skills-cli validate .claude/skills/my-skill`. Show validation results in UI. Support strict/lenient/loose modes. **Done =** CLI validation integrated.
+- [x] **1.9.1`[P]` Skills data model — `packages/common/src/skills-types.ts`: `SkillManifest`, `SkillMetadata`, `SkillDirective`, `SkillScope` (global|project|nested). Directory structure: `SKILL.md` with YAML frontmatter + markdown body. `scripts/`, `references/`, `assets/` subdirs. SQLite schema: `skills` table with id, name, description, scope, directory_path, frontmatter_json, is_builtin, created_at, updated_at. **Done =** types defined, schema created, directory structure validated.
+- [x] **1.9.2`[P]` Skills CRUD UI — `SkillsPanel.svelte`: list by scope (global/project). Create from template (10+ templates: code-review, debug, refactor, test, docs, deploy, etc.). Edit with markdown editor + frontmatter form (live validation). Preview rendered skill. Delete with confirmation. File watcher auto-reload. **Done =** skills manageable in UI.
+- [~] **1.9.3`[P]` Skills chat integration — `@skill:<name>` autocomplete in chat input. Fuzzy match. Show description tooltip. Render as chip in input. On send, pass skill names to agent via ACP `session/prompt` metadata. Agent loads and triggers skills. **Done =** skills trigger and inject correctly.
+- [x] **1.9.4`[P]` Skills directory scanning — Scan `~/.claude/skills/`, `.claude/skills/` (project), `.agents/skills/`, `.cursor/skills/` on startup and file change. Parse `SKILL.md` frontmatter. Validate naming (lowercase, hyphens, max 64 chars). Detect duplicates. Load into SQLite. **Done =** scanning works, all directories covered.
+- [~] **1.9.5`[P]` Skills YAML frontmatter validation — Validate required fields: `name`, `description`. Validate constraints: name matches directory, 1-64 chars, lowercase alphanumeric + hyphens. Validate optional fields: `when_to_use`, `arguments`, `allowed-tools`, `model`, `effort`, `shell`, `license`. Size check: body < 500 lines. Lint errors shown in UI. **Done =** validation works, errors shown.
+- [~] **1.9.6`[P]` Skills progressive disclosure metadata — Extract Level 1 (metadata: name + description, ~100 tokens) from all skills. Send to agent as catalog via ACP `session/new` or `session/set_config_option`. Agent uses catalog to decide which skills to trigger. **Done =** metadata always available to agent.
+- [~] **1.9.7`[P]` Skills cross-compatibility loading — Load skills from `.claude/skills/` (Claude Code), `.cursor/skills/` (Cursor 2.0+ MDC hybrid), `.agents/skills/` (cross-client convention). Convert Cursor MDC frontmatter to standard format. Save in standard format. **Done =** skills portable across clients.
+- [~] **1.9.8`[P]` Skills template library — Built-in templates: `code-review`, `debug`, `refactor`, `test-generation`, `documentation`, `deployment`, `api-migration`, `security-audit`, `performance-optimize`. Each with pre-filled SKILL.md, scripts, references. **Done =** templates available.
+- [~] **1.9.9`[P]` Skills file watcher — Watch skill directories for changes. Auto-reload on add/edit/delete. Notify agent of changes. Update UI in real-time. **Done =** watcher works.
+- [~] **1.9.10`[P]` Skills CLI validation integration — Integrate `claude-skills-cli` (npm) for validation: `pnpx claude-skills-cli validate .claude/skills/my-skill`. Show validation results in UI. Support strict/lenient/loose modes. **Done =** CLI validation integrated.
 
 ### 1.10 Agent Manager (ACP Agent Monitoring)
 
@@ -221,40 +221,40 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 > **Note:** This is NOT the orchestrator. The orchestrator (Phase 2) is a built-in agent that uses A2A to delegate to subagents. This section is about managing the external ACP agents that the IDE connects to.
 
-- [ ] **1.10.1`[P]` Agent task model — `packages/common/src/agent-task-types.ts`: `AgentTask`: id, agent_id, conversation_id, project, description, status (queued|running|awaiting_hil|completed|failed), timestamps, cost, current_tool, error. SQLite schema: `agent_tasks` table. `AgentManagerStore` in Svelte 5. **Done =** model defined, store reactive.
-- [ ] **1.10.2`[P]` Kanban UI — `AgentManagerPanel.svelte`: columns: Queued, Running, Awaiting HIL, Completed, Failed. Cards: agent name, task, project, elapsed time, cost, current tool. Drag to reorder queued. Click card for details. **Done =** kanban board works, cards interactive.
-- [ ] **1.10.3`[P]` Parallel agent management — Launch multiple ACP agents simultaneously. Per-project and global concurrency limits (default 3 concurrent). Kill/pause/requeue per task. Queue overflow handling. **Done =** multiple agents run concurrently, limits enforced.
-- [ ] **1.10.4`[P]` Agent cost tracking — Parse cost information from ACP `session/update` notifications. Track per-task, per-conversation, per-agent, per-project. Running total. Budget alerts. **Done =** costs tracked and visible.
-- [ ] **1.10.5`[P]` Agent HIL (Human-in-the-Loop) queue — When agent requests permission via ACP `request_permission`, show in Awaiting HIL column. Inline approve/deny in chat AND in agent manager. Batch approve multiple requests. **Done =** HIL queue manageable.
-- [ ] **1.10.6`[P]` Agent task history — Completed and failed tasks stored. Search/filter. Replay: show what agent did step by step. Export as JSON. **Done =** history browsable and replayable.
-- [ ] **1.10.7`[P]` Agent status dashboard — Global view: active agents, total tasks, total cost, average response time. Per-agent: uptime, tasks completed, success rate. Charts: tasks over time, cost over time. **Done =** dashboard visible.
-- [ ] **1.10.8`[P]` Agent error handling and recovery — When agent fails: show error in Failed column. Retry button. Auto-retry on transient errors (max 3). Escalate to user on persistent failures. **Done =** errors handled gracefully.
-- [ ] **1.10.9`[P]` Agent notification system — Desktop notifications for: task completed, HIL required, error occurred, cost threshold reached. Configurable per agent. Do Not Disturb mode. **Done =** notifications delivered.
-- [ ] **1.10.10`[P]` Agent routing visualizer — Graph view: nodes = agents, edges = task handoffs (when one agent delegates to another). Collapsible sidebar. Zoom/pan. **Done =** graph shows agent communication.
+- [x] **1.10.1`[P]` Agent task model — `packages/common/src/agent-task-types.ts`: `AgentTask`: id, agent_id, conversation_id, project, description, status (queued|running|awaiting_hil|completed|failed), timestamps, cost, current_tool, error. SQLite schema: `agent_tasks` table. `AgentManagerStore` in Svelte 5. **Done =** model defined, store reactive.
+- [x] **1.10.2`[P]` Kanban UI — `AgentManagerPanel.svelte`: columns: Queued, Running, Awaiting HIL, Completed, Failed. Cards: agent name, task, project, elapsed time, cost, current tool. Drag to reorder queued. Click card for details. **Done =** kanban board works, cards interactive.
+- [~] **1.10.3`[P]` Parallel agent management — Launch multiple ACP agents simultaneously. Per-project and global concurrency limits (default 3 concurrent). Kill/pause/requeue per task. Queue overflow handling. **Done =** multiple agents run concurrently, limits enforced.
+- [~] **1.10.4`[P]` Agent cost tracking — Parse cost information from ACP `session/update` notifications. Track per-task, per-conversation, per-agent, per-project. Running total. Budget alerts. **Done =** costs tracked and visible.
+- [x] **1.10.5`[P]` Agent HIL (Human-in-the-Loop) queue — When agent requests permission via ACP `request_permission`, show in Awaiting HIL column. Inline approve/deny in chat AND in agent manager. Batch approve multiple requests. **Done =** HIL queue manageable.
+- [~] **1.10.6`[P]` Agent task history — Completed and failed tasks stored. Search/filter. Replay: show what agent did step by step. Export as JSON. **Done =** history browsable and replayable.
+- [~] **1.10.7`[P]` Agent status dashboard — Global view: active agents, total tasks, total cost, average response time. Per-agent: uptime, tasks completed, success rate. Charts: tasks over time, cost over time. **Done =** dashboard visible.
+- [~] **1.10.8`[P]` Agent error handling and recovery — When agent fails: show error in Failed column. Retry button. Auto-retry on transient errors (max 3). Escalate to user on persistent failures. **Done =** errors handled gracefully.
+- [~] **1.10.9`[P]` Agent notification system — Desktop notifications for: task completed, HIL required, error occurred, cost threshold reached. Configurable per agent. Do Not Disturb mode. **Done =** notifications delivered.
+- [~] **1.10.10`[P]` Agent routing visualizer — Graph view: nodes = agents, edges = task handoffs (when one agent delegates to another). Collapsible sidebar. Zoom/pan. **Done =** graph shows agent communication.
 
 
 ### 1.11 Productivity Panels
 
 > \*\*Goal:\*\* Three first-class panels for developer productivity: a Notes tab with a markdown editor + live preview (per-project, auto-saved), a TODO tab with checkbox items that agents can auto-populate from their plans, and a Diff viewer tab that handles side-by-side and unified diffs from any source — agent edits, Git diffs, or file comparisons. All three panels are persistent, polished, and feel like native parts of the IDE, not afterthoughts.
 
-* \[ ] **1.11.1** Notes tab — Markdown editor with live preview. Per-project. Auto-save. Toolbar. **Done =** notes editable, persisted, preview works.
-* \[ ] **1.11.2** TODO tab — Checkbox items. Agents auto-add. Manual add/edit/reorder/delete. Persisted in SQLite. **Done =** task list works, agent integration works.
-* \[ ] **1.11.3** Diff viewer tab — Standalone side-by-side/unified diff. Per-hunk accept/reject. Syntax highlighting. Open from agent, git, or file comparison. **Done =** diff viewer works for all sources.
+* \[x] **1.11.1** Notes tab — Markdown editor with live preview. Per-project. Auto-save. Toolbar. **Done =** notes editable, persisted, preview works.
+* \[x] **1.11.2** TODO tab — Checkbox items. Agents auto-add. Manual add/edit/reorder/delete. Persisted in SQLite. **Done =** task list works, agent integration works.
+* \[~] **1.11.3** Diff viewer tab — Standalone side-by-side/unified diff. Per-hunk accept/reject. Syntax highlighting. Open from agent, git, or file comparison. **Done =** diff viewer works for all sources.
 
 ### 1.12 Editor Advanced Features
 
 > \*\*Goal:\*\* The editor is a CodeMirror 6 powerhouse with Vim mode, Emacs mode, enhanced multi-cursor (Cmd+D, Cmd+Shift+L, Alt+Click), a scroll-synced minimap, code folding, breadcrumbs with clickable file path segments and symbol navigation, sticky scroll that pins the current scope to the top, Git worktree management, workspace management for multiple independent contexts, and inline diffs that show agent edits as gutter annotations with accept/reject per hunk. It feels like a native code editor, not a web toy.
 
-* \[\~] **1.12.1** Vim mode — `@codemirror/vim` or custom. Toggle via settings/Cmd+Shift+V. Visual/insert/normal modes. Status bar indicator. **Done =** Vim keybindings work.
-* \[ ] **1.12.2** Emacs mode — Emacs keybindings via CodeMirror. Toggle via settings. **Done =** Emacs keybindings work.
-* \[ ] **1.12.3** Enhanced multi-cursor — `Cmd+D` (select next occurrence), `Cmd+Shift+L` (select all). `Alt+Click` visual multi-cursor. **Done =** multi-cursor editing works.
-* \[ ] **1.12.4** Minimap — CodeMirror minimap extension. Toggle. Scroll-synced. **Done =** minimap visible, synced.
-* \[ ] **1.12.5** Code folding — Fold by indentation + syntax. Fold all / unfold all commands. **Done =** code folds correctly.
-* \[ ] **1.12.6** Breadcrumbs — File path above editor (clickable segments). Symbol breadcrumb at cursor. **Done =** breadcrumbs show and navigate.
-* \[ ] **1.12.7** Sticky scroll — Pin current scope to top on scroll. CodeMirror extension. **Done =** scope sticks on scroll.
-* \[\~] **1.12.8** `\[P]` Git worktree UI — Create, list, switch, remove worktrees. Dialog for create. Each worktree = separate workspace. Status bar indicator. **Done =** worktree management in UI.
-* \[ ] **1.12.9** Workspace management — Multiple workspaces open. Switcher (Cmd+Shift+W). Each workspace: independent layout, terminals, open files. **Done =** multiple workspaces work.
-* \[ ] **1.12.10** Inline diff in editor — Agent edits show as gutter annotations with accept/reject per hunk. Not just in chat panel. **Done =** inline diff works in the editor itself.
+* \[x] **1.12.1** Vim mode — `@codemirror/vim` or custom. Toggle via settings/Cmd+Shift+V. Visual/insert/normal modes. Status bar indicator. **Done =** Vim keybindings work.
+* \[~] **1.12.2** Emacs mode — Emacs keybindings via CodeMirror. Toggle via settings. **Done =** Emacs keybindings work.
+* \[x] **1.12.3** Enhanced multi-cursor — `Cmd+D` (select next occurrence), `Cmd+Shift+L` (select all). `Alt+Click` visual multi-cursor. **Done =** multi-cursor editing works.
+* \[x] **1.12.4** Minimap — CodeMirror minimap extension. Toggle. Scroll-synced. **Done =** minimap visible, synced.
+* \[x] **1.12.5** Code folding — Fold by indentation + syntax. Fold all / unfold all commands. **Done =** code folds correctly.
+* \[x] **1.12.6** Breadcrumbs — File path above editor (clickable segments). Symbol breadcrumb at cursor. **Done =** breadcrumbs show and navigate.
+* \[~] **1.12.7** Sticky scroll — Pin current scope to top on scroll. CodeMirror extension. **Done =** scope sticks on scroll.
+* \[x] **1.12.8** `\[P]` Git worktree UI — Create, list, switch, remove worktrees. Dialog for create. Each worktree = separate workspace. Status bar indicator. **Done =** worktree management in UI.
+* \[~] **1.12.9** Workspace management — Multiple workspaces open. Switcher (Cmd+Shift+W). Each workspace: independent layout, terminals, open files. **Done =** multiple workspaces work.
+* \[~] **1.12.10** Inline diff in editor — Agent edits show as gutter annotations with accept/reject per hunk. Not just in chat panel. **Done =** inline diff works in the editor itself.
 
 ### 1.13 Keyboard & Commands
 
