@@ -1,14 +1,53 @@
 <script lang="ts">
+  import "katex/dist/katex.min.css";
   import type { TextBlock } from "@runyard/common";
   import { renderMarkdownLite } from "./markdownLite.js";
+  import Lightbox from "./Lightbox.svelte";
 
   let { block }: { block: TextBlock } = $props();
   let html = $derived(renderMarkdownLite(block.text));
+  let container: HTMLDivElement;
+  let lightboxSrc = $state<string | null>(null);
+
+  async function renderMermaidBlocks() {
+    if (!container) return;
+    const pending = container.querySelectorAll<HTMLDivElement>(".mermaid-pending");
+    if (pending.length === 0) return;
+    const mermaid = (await import("mermaid")).default;
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+    for (const el of Array.from(pending)) {
+      const source = el.textContent ?? "";
+      try {
+        const id = `mermaid-${Math.random().toString(36).slice(2)}`;
+        const { svg } = await mermaid.render(id, source);
+        el.innerHTML = svg;
+        el.classList.remove("mermaid-pending");
+        el.classList.add("mermaid-rendered");
+      } catch (e) {
+        el.textContent = "Diagram failed to render.";
+        el.classList.add("mermaid-error");
+      }
+    }
+  }
+
+  function handleContainerClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "IMG" && target.dataset.lightbox) {
+      lightboxSrc = target.dataset.lightbox;
+    }
+  }
+
+  $effect(() => {
+    void html; // re-run after markup (re)renders
+    renderMermaidBlocks();
+  });
 </script>
 
-<div class="text-block">
+<div class="text-block" bind:this={container} onclick={handleContainerClick} role="presentation">
   {@html html}
 </div>
+
+<Lightbox src={lightboxSrc} onClose={() => (lightboxSrc = null)} />
 
 <style>
   .text-block {
@@ -88,5 +127,35 @@
   .text-block :global(th) {
     background: var(--bg-tertiary);
     font-weight: 600;
+  }
+  .text-block :global(.md-image) {
+    max-width: 100%;
+    border-radius: var(--radius-2);
+    cursor: zoom-in;
+    margin: var(--space-2) 0;
+    display: block;
+  }
+  .text-block :global(.md-math-block) {
+    margin: var(--space-3) 0;
+    overflow-x: auto;
+  }
+  .text-block :global(.mermaid-pending) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: var(--space-3);
+    border-radius: var(--radius-0);
+    white-space: pre;
+  }
+  .text-block :global(.mermaid-rendered) {
+    display: flex;
+    justify-content: center;
+    margin: var(--space-3) 0;
+    overflow-x: auto;
+  }
+  .text-block :global(.mermaid-error) {
+    color: var(--text-error);
+    font-size: var(--text-sm);
   }
 </style>
