@@ -96,7 +96,7 @@ class ChatStore {
   async loadMessages(conversationId: string, page?: number, limit?: number) {
     try {
       const list = await invoke<Message[]>("chat_messages_load", {
-        conversation_id: conversationId,
+        conversationId,
         page,
         limit
       });
@@ -118,10 +118,10 @@ class ChatStore {
       const conv = await invoke<Conversation>("chat_conversation_create", {
         title,
         model,
-        workspace_path: workspacePath,
+        workspacePath,
         provider,
-        system_prompt: systemPrompt,
-        context_budget: contextBudget
+        systemPrompt,
+        contextBudget
       });
       this.conversations = [conv, ...this.conversations];
       this.openConversationInTab(conv.id);
@@ -139,9 +139,9 @@ class ChatStore {
         title: updates.title,
         model: updates.model,
         provider: updates.provider,
-        system_prompt: updates.system_prompt,
-        context_budget: updates.context_budget,
-        workspace_path: updates.workspace_path
+        systemPrompt: updates.system_prompt,
+        contextBudget: updates.context_budget,
+        workspacePath: updates.workspace_path
       });
 
       this.conversations = this.conversations.map((c) => (c.id === id ? updated : c));
@@ -201,8 +201,8 @@ class ChatStore {
 
     try {
       const msg = await invoke<Message>("chat_message_insert", {
-        conversation_id: this.activeConversationId,
-        parent_id: parentId,
+        conversationId: this.activeConversationId,
+        parentId,
         role: "user",
         content,
       });
@@ -240,7 +240,7 @@ class ChatStore {
     try {
       const updated = await invoke<Message>("chat_message_set_pinned", {
         id,
-        is_pinned: isPinned
+        isPinned
       });
       this.messages = this.messages.map((m) => (m.id === id ? updated : m));
     } catch (e) {
@@ -262,7 +262,7 @@ class ChatStore {
   async loadPinnedContext(conversationId: string) {
     try {
       const list = await invoke<PinnedContext[]>("chat_pinned_context_load", {
-        conversation_id: conversationId
+        conversationId
       });
       this.pinnedContext = list;
     } catch (e) {
@@ -274,8 +274,8 @@ class ChatStore {
     if (!this.activeConversationId) return;
     try {
       const pc = await invoke<PinnedContext>("chat_pinned_context_save", {
-        conversation_id: this.activeConversationId,
-        file_path: filePath
+        conversationId: this.activeConversationId,
+        filePath
       });
       this.pinnedContext = [...this.pinnedContext, pc];
     } catch (e) {
@@ -297,7 +297,7 @@ class ChatStore {
   async loadBranches(conversationId: string) {
     try {
       const list = await invoke<Branch[]>("chat_branch_list", {
-        conversation_id: conversationId
+        conversationId
       });
       this.branches = list;
     } catch (e) {
@@ -309,9 +309,9 @@ class ChatStore {
     if (!this.activeConversationId) return;
     try {
       const b = await invoke<Branch>("chat_branch_create", {
-        conversation_id: this.activeConversationId,
+        conversationId: this.activeConversationId,
         name,
-        message_id: messageId
+        messageId
       });
       this.branches = [...this.branches, b];
     } catch (e) {
