@@ -8,7 +8,7 @@
   import { webSocketClient } from "@runyard/common";
 
   let fileEncoding = $state<string>("UTF-8");
-  let connectionState = $state<"connected" | "connecting" | "disconnected">("disconnected");
+  let connectionState = $state<"connected" | "connecting" | "disconnected" | "local">("local");
 
   // Derive active LSP languages and their statuses
   let lspBadges = $derived(
@@ -160,6 +160,10 @@
 
   .connection.status-disconnected {
     background-color: var(--border-error, #ef4444);
+  }
+
+  .connection.status-local {
+    background-color: var(--accent, #4f46e5);
   }
 
   .connection:hover {

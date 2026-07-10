@@ -8,23 +8,30 @@ class WebSocketClient {
   private queuedRequests: string[] = [];
   private isConnecting = false;
 
-  private statusListeners = new Set<(status: "connected" | "connecting" | "disconnected") => void>();
-  public status: "connected" | "connecting" | "disconnected" = "disconnected";
+  private statusListeners = new Set<(status: "connected" | "connecting" | "disconnected" | "local") => void>();
+  public status: "connected" | "connecting" | "disconnected" | "local" = "disconnected";
 
   constructor() {
     if (typeof window !== "undefined") {
-      this.connect();
+      const isTauri = !!(window as any).__TAURI_INTERNALS__;
+      const hasRemoteToken = new URLSearchParams(window.location.search).has("token");
+
+      if (isTauri && !hasRemoteToken) {
+        this.status = "local";
+      } else {
+        this.connect();
+      }
     }
   }
 
-  private setStatus(newStatus: "connected" | "connecting" | "disconnected") {
+  private setStatus(newStatus: "connected" | "connecting" | "disconnected" | "local") {
     this.status = newStatus;
     for (const listener of this.statusListeners) {
       listener(newStatus);
     }
   }
 
-  public onStatusChange(callback: (status: "connected" | "connecting" | "disconnected") => void) {
+  public onStatusChange(callback: (status: "connected" | "connecting" | "disconnected" | "local") => void) {
     this.statusListeners.add(callback);
     callback(this.status);
     return () => {
