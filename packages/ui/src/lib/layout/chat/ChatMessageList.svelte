@@ -4,12 +4,17 @@
   import ChatMessage from "./ChatMessage.svelte";
   import { tick } from "svelte";
 
-  let { messages, onOpenFile }: { messages: Message[]; onOpenFile?: (path: string) => void } = $props();
+  let {
+    messages,
+    onOpenFile,
+    scrollToMessageId,
+  }: { messages: Message[]; onOpenFile?: (path: string) => void; scrollToMessageId?: string | null } = $props();
 
   let container: HTMLDivElement;
   let isNearBottom = $state(true);
   let showJumpToTop = $state(false);
   let lastMessageCount = 0;
+  let highlightedId = $state<string | null>(null);
 
   function handleScroll() {
     if (!container) return;
@@ -37,6 +42,19 @@
       }
     }
   });
+
+  $effect(() => {
+    const targetId = scrollToMessageId;
+    if (!targetId) return;
+    tick().then(() => {
+      const el = document.getElementById(`message-${targetId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        highlightedId = targetId;
+        setTimeout(() => (highlightedId = null), 1500);
+      }
+    });
+  });
 </script>
 
 <div class="message-list" bind:this={container} onscroll={handleScroll}>
@@ -44,7 +62,7 @@
     <div class="empty-state">No messages yet. Send one to get started.</div>
   {/if}
   {#each messages as message (message.id)}
-    <div class="message-wrapper">
+    <div class="message-wrapper" id={`message-${message.id}`} class:highlighted={highlightedId === message.id}>
       <ChatMessage {message} {onOpenFile} />
     </div>
   {/each}
@@ -73,6 +91,10 @@
        viewport. Real performance benefit, no custom windowing math to get wrong. */
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
+    transition: background-color 300ms ease;
+  }
+  .message-wrapper.highlighted {
+    background-color: color-mix(in srgb, var(--accent) 12%, transparent);
   }
   .empty-state {
     padding: var(--space-8);

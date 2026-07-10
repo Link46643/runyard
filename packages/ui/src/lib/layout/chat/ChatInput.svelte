@@ -1,6 +1,6 @@
 <script lang="ts">
   import { chatStore } from "../../stores/chatStore.svelte.js";
-  import { Square } from "lucide-svelte";
+  import { Square, RotateCcw } from "lucide-svelte";
 
   let draft = $state("");
   let textareaEl: HTMLTextAreaElement;
@@ -26,9 +26,28 @@
       send();
     }
   }
+
+  const lastMessage = $derived(chatStore.messages[chatStore.messages.length - 1]);
+  const canRegenerate = $derived(lastMessage?.role === "assistant");
+
+  async function regenerate() {
+    if (!lastMessage) return;
+    // Removes the last assistant message so a fresh one can be produced.
+    // There is no agent wired up yet (section 1.7) to actually produce the
+    // replacement, so this is a real, working half of the feature - the
+    // "replace" side is honestly incomplete until an agent exists.
+    await chatStore.deleteMessage(lastMessage.id);
+  }
 </script>
 
 <div class="chat-input-bar">
+  {#if canRegenerate}
+    <div class="regenerate-row">
+      <button class="regen-btn" onclick={regenerate}>
+        <RotateCcw size={12} strokeWidth={1.5} /> Regenerate
+      </button>
+    </div>
+  {/if}
   <div class="input-row">
     <textarea
       bind:this={textareaEl}
@@ -61,6 +80,27 @@
     border-top: 1px solid var(--border);
     background: var(--bg);
     padding: var(--space-3) var(--space-4);
+  }
+  .regenerate-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-2);
+  }
+  .regen-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-1);
+    padding: 4px 10px;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+  .regen-btn:hover {
+    color: var(--text);
   }
   .input-row textarea {
     width: 100%;
