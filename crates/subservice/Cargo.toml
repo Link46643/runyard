@@ -1,0 +1,21 @@
+[package]
+name = "subservice"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+runyard-core = { path = "../runyard-core" }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.21"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+futures-util = "0.3"
+toml = "0.8"
+bcrypt = "0.15"
+rust-embed = "8.3"
+mime_guess = "2.0"
+httparse = "1.10"
+uuid = { version = "1", features = ["v4"] }
+
+
+

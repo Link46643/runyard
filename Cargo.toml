@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "apps/desktop/src-tauri",
+    "crates/runyard-core",
+    "crates/subservice",
+]
+resolver = "2"
