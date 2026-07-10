@@ -595,40 +595,5 @@ Key Principles:
 ```
 
 
-## Changelog
-
-### v4 (2026-07-10) — Section 1.4 Implemented and Audited
-
-* Section 1.4 (Chat Panel - UI & Rendering) implemented end to end: 14/20 tasks fully done, 6 partial with audit notes explaining exactly what's missing and why (see inline notes on 1.4.2, 1.4.5, 1.4.9, 1.4.10, 1.4.15, 1.4.16). Zero tasks left untouched.
-* The recurring theme across every partial task: nothing that requires a live agent (streaming, tool call duration, error retry, regenerate) can be more than structurally correct-but-dormant until the ACP client (1.7) exists. That's expected sequencing, not a defect.
-* The other recurring theme: a couple of deliberate technique substitutions where the literal spec wording carries real bug risk under the available time - CSS `content-visibility` instead of a hand-rolled windowed virtual list (1.4.2), and leaving the pre-existing single-tab-instance/`popOutTab` stub limitation unfixed for chat specifically (1.4.16) rather than a bigger layout-system change.
-* Also fixed during this pass: a real bug (permission Approve/Deny and CodeBlock Explain were never wired to their callbacks, so they silently did nothing), a missing `chat_message_delete` command, and a workspace-wide `typescript: "latest"` footgun that resolved to TS 7.0.2 and crashed `svelte-package` (now pinned to 5.6.3 via `pnpm.overrides`).
-
-### v3 (2025-07-05) — Audit-Based Reality Check
-
-* **Full codebase audit** against the GitHub repo (commit `06567ab`). Read every Rust file, every TS file, every package.json, every Cargo.toml.
-* **Completion markers added** — `\[✓]` = fully done, `\[\~]` = partially built / stub exists, `\[ ]` = not started
-* **Audit notes added** to every task — describes what actually exists in the codebase vs. what the spec says
-* **Key findings:**
-
-  * **Solid (\~16 complete, \~8 partial):** Rust core (FS, Git, Terminal, LSP, Settings), Svelte 5 layout system (tabs, splits, stores, command palette), CodeMirror 6 editor with LSP integration, sub-service daemon (fully implemented with WebSocket proxies and asset serving), client-side mock-core/events for browser WebSocket connectivity, basic theme toggle, xterm.js terminal with instance caching, file watcher, basic error handling
-  * **Missing (\~75+ not started):** Entire chat/AI system (no types, no DB, no UI), all agent protocols (ACP/MCP/A2A are stubs), mobile/web UI adaptations, SQLite persistence, multi-workspace, themes beyond binary toggle, no performance profiling, no build pipeline
-* **Quick wins re-evaluated:** QW.11 (Git branch in status bar) marked complete. QW.1, QW.6, QW.10, QW.14 marked partial. Rest remain not started.
-* **No new task numbers added** — the existing 80+ tasks already cover the full spec. The audit just reveals which ones are further along than expected.
-
-### v2 (2025-07-05)
-
-* **Restructured from 16 sections to 6** — removed redundant Feature Catalog and Codebase Audit documents, merged their content here
-* **Added 6 missing task groups** from feature spec: sub-service multi-user, inline editor diff, agent config editing UI, theme format foundation, sub-service health, storage architecture
-* **Granular tasks** — split large tasks into smaller handoff units (e.g., chat panel split into 1.3 data, 1.4 UI, 1.5 input/context)
-* **Added `\[STRETCH]` tag** — for non-blocking nice-to-haves
-* **Added 10 more quick wins** — from QW.11 to QW.20
-* **Added Changelog section** — this doc tracks its own evolution
-* **OS-agnostic language** — removed "Mac-first", added `\[CROSS]` tag consistently
-* **Mobile in Phase 1** — sub-service web serving enables mobile browsers in Phase 1, native apps in Phase 2
-* **Protocol research** — moved to separate Protocol Research Reference document (cmr6pcxyf1p0z07adv19hx61s)
-* **Chat Panel Spec** — detailed specification in separate document (cmr7ikw1r1t7y06adcqyaotl8)
-* **Added Goal sections** — descriptive paragraph after each major section (1.1, 1.2, etc.) describing the end-state vision
-
 ## Phase 1 — Agentic Workspaces (Hackathon Solution Statement)
 
