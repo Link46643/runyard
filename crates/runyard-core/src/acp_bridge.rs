@@ -102,11 +102,28 @@ fn transport_for_agent(agent: &crate::acp_agent_db::DbAcpAgent) -> Result<AgentT
             // with correct argument escaping - no cmd.exe /c wrapper is
             // needed, and adding one would double-tokenize the command
             // string and break on any argument containing spaces or quotes.
-            let command = agent
+            let mut command = agent
                 .spawn_command
                 .clone()
                 .or_else(|| agent.executable_path.clone())
                 .ok_or_else(|| format!("agent '{}' has no spawn_command or executable_path configured", agent.name))?;
+            
+            #[cfg(target_os = "windows")]
+            {
+                // On Windows, if the command starts with an extensionless word (e.g., "opencode acp" or "opencode"),
+                // and that binary doesn't exist as a native .exe but does exist as a .cmd or .bat in the user's PATH,
+                // we must append the extension to the first token so tokio/CreateProcess resolves and runs the script successfully.
+                if let Some(first_word) = command.split_whitespace().next() {
+                    if !first_word.ends_with(".exe") && !first_word.ends_with(".cmd") && !first_word.ends_with(".bat") {
+                        if which::which(format!("{first_word}.cmd")).is_ok() {
+                            command = command.replacen(first_word, &format!("{first_word}.cmd"), 1);
+                        } else if which::which(format!("{first_word}.bat")).is_ok() {
+                            command = command.replacen(first_word, &format!("{first_word}.bat"), 1);
+                        }
+                    }
+                }
+            }
+
             Ok(AgentTransportConfig::stdio(command))
         }
         "http" => {
