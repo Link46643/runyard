@@ -200,17 +200,19 @@ class AcpStore {
   }) {
     this.error = null;
     try {
+      const p: any = params;
+      const rawEnvVars = p.envVars || p.env_vars;
       const mapped = {
-        name: params.name,
-        agent_id: params.agentId,
-        transport: params.transport,
-        executable_path: params.executablePath || null,
-        spawn_command: params.spawnCommand || null,
-        remote_url: params.remoteUrl || null,
-        env_vars: params.envVars ? params.envVars.map(ev => ({
+        name: p.name,
+        agentId: p.agentId || p.agent_id,
+        transport: p.transport,
+        executablePath: p.executablePath !== undefined ? p.executablePath : p.executable_path || null,
+        spawnCommand: p.spawnCommand !== undefined ? p.spawnCommand : p.spawn_command || null,
+        remoteUrl: p.remoteUrl !== undefined ? p.remoteUrl : p.remote_url || null,
+        envVars: rawEnvVars ? rawEnvVars.map((ev: any) => ({
           key: ev.key,
           value: ev.value,
-          is_secret: ev.isSecret
+          isSecret: ev.isSecret !== undefined ? ev.isSecret : ev.is_secret
         })) : null
       };
       await invoke("acp_agent_create", mapped);
@@ -234,17 +236,26 @@ class AcpStore {
   }>) {
     this.error = null;
     try {
+      const p: any = params;
       const mapped: any = { id };
-      if (params.name !== undefined) mapped.name = params.name;
-      if (params.transport !== undefined) mapped.transport = params.transport;
-      if (params.executablePath !== undefined) mapped.executable_path = params.executablePath;
-      if (params.spawnCommand !== undefined) mapped.spawn_command = params.spawnCommand;
-      if (params.remoteUrl !== undefined) mapped.remote_url = params.remoteUrl;
-      if (params.envVars !== undefined) {
-        mapped.env_vars = params.envVars.map(ev => ({
+      if (p.name !== undefined) mapped.name = p.name;
+      if (p.transport !== undefined) mapped.transport = p.transport;
+      
+      const execPath = p.executablePath !== undefined ? p.executablePath : p.executable_path;
+      if (execPath !== undefined) mapped.executablePath = execPath;
+
+      const spawnCmd = p.spawnCommand !== undefined ? p.spawnCommand : p.spawn_command;
+      if (spawnCmd !== undefined) mapped.spawnCommand = spawnCmd;
+
+      const remUrl = p.remoteUrl !== undefined ? p.remoteUrl : p.remote_url;
+      if (remUrl !== undefined) mapped.remoteUrl = remUrl;
+
+      const rawEnvVars = p.envVars || p.env_vars;
+      if (rawEnvVars !== undefined) {
+        mapped.envVars = rawEnvVars.map((ev: any) => ({
           key: ev.key,
           value: ev.value,
-          is_secret: ev.isSecret
+          isSecret: ev.isSecret !== undefined ? ev.isSecret : ev.is_secret
         }));
       }
       await invoke("acp_agent_update", mapped);
