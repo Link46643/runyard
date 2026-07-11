@@ -39,20 +39,27 @@ pub struct KnownAgent {
 /// The static catalog of agents Runyard scans for. Per
 /// engineering-todo-v2.md 1.6.2: "scan PATH for known executables (`claude`,
 /// `gemini`, `codex`, `goose`, etc.)". Cross-referenced against each agent's
-/// own ACP documentation for the right executable name and required args:
-/// - Claude Code: `claude` (no extra args needed once ACP mode is enabled)
-/// - Gemini CLI: `gemini` (no extra args)
-/// - Codex CLI: `codex` (no extra args)
-/// - Goose: `goose session --acp` per goose's own ACP docs
-/// - OpenCode: `opencode acp` per opencode.ai/docs/acp - the `opencode`
-///   binary is a general CLI; the `acp` subcommand starts the ACP server.
-///   There is no separate `opencode-acp` binary (a wrong guess previously
-///   in this catalog, now corrected).
+/// own current ACP documentation - corrected after finding two of the
+/// original guesses were wrong (a bare CLI binary is NOT the same thing as
+/// its ACP entry point for every agent):
+///
+/// - Claude Code: has NO built-in `--acp` flag. ACP support is a *separate*
+///   adapter binary, `claude-agent-acp` (npm: @agentclientprotocol/claude-agent-acp,
+///   successor to the older @zed-industries/claude-code-acp - both names are
+///   searched). Scanning for bare `claude` and adding it as-is would silently
+///   launch the interactive CLI instead of an ACP server.
+/// - Codex CLI: same pattern - the adapter binary is `codex-acp` (npm:
+///   @agentclientprotocol/codex-acp), not the bare `codex` binary.
+/// - Gemini CLI: DOES speak ACP natively, via the `--acp` flag on the `gemini`
+///   binary itself (geminicli.com/docs/cli/acp-mode) - no separate adapter.
+/// - Goose: `goose session --acp` per Goose's own ACP docs.
+/// - OpenCode: `opencode acp` per opencode.ai/docs/acp - a subcommand on the
+///   main `opencode` binary, not a separate adapter package.
 pub const KNOWN_AGENTS: &[KnownAgent] = &[
     KnownAgent {
         agent_id: "claude-code",
         display_name: "Claude Code",
-        executable_names: &["claude"],
+        executable_names: &["claude-agent-acp", "claude-code-acp"],
         config_dir_name: Some("claude"),
         acp_args: &[],
     },
@@ -61,12 +68,12 @@ pub const KNOWN_AGENTS: &[KnownAgent] = &[
         display_name: "Gemini CLI",
         executable_names: &["gemini"],
         config_dir_name: Some("gemini"),
-        acp_args: &[],
+        acp_args: &["--acp"],
     },
     KnownAgent {
         agent_id: "codex-cli",
         display_name: "Codex CLI",
-        executable_names: &["codex"],
+        executable_names: &["codex-acp"],
         config_dir_name: Some("codex"),
         acp_args: &[],
     },
@@ -278,6 +285,50 @@ mod tests {
             .expect("goose should be in the known agents catalog");
         let goose_cmd = build_spawn_command("/usr/local/bin/goose", goose.acp_args);
         assert_eq!(goose_cmd, "/usr/local/bin/goose session --acp");
+    }
+
+    #[test]
+    fn claude_and_codex_point_at_adapter_binaries_not_base_cli() {
+        // Regression test for a real bug: `claude` and `codex` are the base
+        // CLIs and do NOT speak ACP themselves. ACP support for both ships as
+        // a separate adapter binary (npm packages
+        // @agentclientprotocol/claude-agent-acp and
+        // @agentclientprotocol/codex-acp respectively). Scanning for the base
+        // binary and spawning it as-is would launch the interactive CLI, not
+        // an ACP server - verify the catalog searches for the adapter names
+        // instead, with no extra args needed since the adapter itself is the
+        // ACP entry point.
+        let claude = KNOWN_AGENTS.iter().find(|a| a.agent_id == "claude-code")
+            .expect("claude-code should be in the known agents catalog");
+        assert!(
+            claude.executable_names.contains(&"claude-agent-acp"),
+            "claude-code must search for the claude-agent-acp adapter binary, not just the base `claude` CLI"
+        );
+        assert!(!claude.executable_names.contains(&"claude"), "bare `claude` does not speak ACP");
+        assert_eq!(claude.acp_args, &[] as &[&str]);
+
+        let codex = KNOWN_AGENTS.iter().find(|a| a.agent_id == "codex-cli")
+            .expect("codex-cli should be in the known agents catalog");
+        assert!(
+            codex.executable_names.contains(&"codex-acp"),
+            "codex-cli must search for the codex-acp adapter binary, not just the base `codex` CLI"
+        );
+        assert!(!codex.executable_names.contains(&"codex"), "bare `codex` does not speak ACP");
+        assert_eq!(codex.acp_args, &[] as &[&str]);
+    }
+
+    #[test]
+    fn gemini_cli_recommended_spawn_command_includes_acp_flag() {
+        // Regression test: unlike Claude/Codex, Gemini CLI DOES speak ACP
+        // natively on its base binary, but only when passed `--acp`
+        // (geminicli.com/docs/cli/acp-mode) - a bare `gemini` with no flag
+        // starts its interactive chat UI instead.
+        let gemini = KNOWN_AGENTS.iter().find(|a| a.agent_id == "gemini-cli")
+            .expect("gemini-cli should be in the known agents catalog");
+        assert_eq!(gemini.acp_args, &["--acp"], "gemini requires the --acp flag to speak ACP");
+
+        let cmd = build_spawn_command("/usr/local/bin/gemini", gemini.acp_args);
+        assert_eq!(cmd, "/usr/local/bin/gemini --acp");
     }
 
     #[test]

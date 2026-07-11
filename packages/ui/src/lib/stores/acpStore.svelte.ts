@@ -191,12 +191,21 @@ class AcpStore {
 
   async createAgent(params: {
     name: string;
-    agentId: string;
+    // Accepts either casing: callers coming straight off Tauri IPC payloads
+    // (which are snake_case, matching the Rust side) pass agent_id/etc,
+    // while callers building the object by hand tend to use agentId/etc.
+    // Both are normalized to camelCase below before the actual IPC call.
+    agentId?: string;
+    agent_id?: string;
     transport: string;
     executablePath?: string | null;
+    executable_path?: string | null;
     spawnCommand?: string | null;
+    spawn_command?: string | null;
     remoteUrl?: string | null;
-    envVars?: Array<{ key: string; value: string; isSecret: boolean }>;
+    remote_url?: string | null;
+    envVars?: Array<{ key: string; value: string; isSecret?: boolean; is_secret?: boolean }>;
+    env_vars?: Array<{ key: string; value: string; isSecret?: boolean; is_secret?: boolean }>;
   }) {
     this.error = null;
     try {

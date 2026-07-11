@@ -361,7 +361,9 @@
     formAgentId = r.id;
     formTransport = "stdio";
     if (r.id === "claude-acp" || r.id === "claude-code") {
-      formSpawnCommand = "npx -y @anthropic-ai/claude-code@latest --acp";
+      // claude itself has no ACP mode - the real entry point is the separate
+      // claude-agent-acp adapter binary (npm: @agentclientprotocol/claude-agent-acp).
+      formSpawnCommand = "npx -y @agentclientprotocol/claude-agent-acp@latest";
       formExecutablePath = "";
     } else if (r.id === "goose") {
       formSpawnCommand = "goose session --acp";
@@ -370,7 +372,12 @@
       formSpawnCommand = "opencode acp";
       formExecutablePath = "";
     } else if (r.id === "gemini-cli" || r.id === "gemini") {
-      formSpawnCommand = "gemini acp";
+      formSpawnCommand = "gemini --acp";
+      formExecutablePath = "";
+    } else if (r.id === "codex-acp" || r.id === "codex-cli" || r.id === "codex") {
+      // codex itself has no ACP mode - the real entry point is the separate
+      // codex-acp adapter binary (npm: @agentclientprotocol/codex-acp).
+      formSpawnCommand = "npx -y @agentclientprotocol/codex-acp@latest";
       formExecutablePath = "";
     } else {
       formSpawnCommand = "";
@@ -888,9 +895,16 @@
 
                 <div class="guide-item">
                   <span class="agent-title">Claude Code</span>
-                  <p class="agent-desc">Install Anthropic's Claude Code CLI globally:</p>
-                  <pre class="code-block">npm install -g @anthropic-ai/claude-code</pre>
-                  <p class="agent-tip">Spawn command: <code>claude --acp</code> or <code>npx -y @anthropic-ai/claude-code@latest --acp</code></p>
+                  <p class="agent-desc">Claude Code's own CLI has no ACP mode. Install the separate ACP adapter instead:</p>
+                  <pre class="code-block">npm install -g @agentclientprotocol/claude-agent-acp</pre>
+                  <p class="agent-tip">Spawn command: <code>claude-agent-acp</code> or <code>npx -y @agentclientprotocol/claude-agent-acp@latest</code></p>
+                </div>
+
+                <div class="guide-item">
+                  <span class="agent-title">Codex CLI</span>
+                  <p class="agent-desc">Codex CLI's own CLI has no ACP mode. Install the separate ACP adapter instead:</p>
+                  <pre class="code-block">npm install -g @agentclientprotocol/codex-acp</pre>
+                  <p class="agent-tip">Spawn command: <code>codex-acp</code> or <code>npx -y @agentclientprotocol/codex-acp@latest</code></p>
                 </div>
 
                 <div class="guide-item">
@@ -902,9 +916,9 @@
 
                 <div class="guide-item">
                   <span class="agent-title">Gemini CLI</span>
-                  <p class="agent-desc">Install the Gemini CLI tool globally:</p>
-                  <pre class="code-block">npm install -g gemini-cli</pre>
-                  <p class="agent-tip">Spawn command: <code>gemini acp</code></p>
+                  <p class="agent-desc">Install the Gemini CLI tool globally, then start it in ACP mode with the <code>--acp</code> flag:</p>
+                  <pre class="code-block">npm install -g @google/gemini-cli</pre>
+                  <p class="agent-tip">Spawn command: <code>gemini --acp</code></p>
                 </div>
               </div>
 
