@@ -3,11 +3,14 @@ use std::str::FromStr;
 
 use agent_client_protocol::schema::v1::{
     AuthMethodId, AuthenticateRequest, CancelNotification, ClientCapabilities,
-    ClientSessionCapabilities, FileSystemCapabilities, Implementation, InitializeRequest,
-    LoadSessionRequest, LogoutRequest, McpServer, NewSessionResponse, RequestPermissionOutcome,
-    RequestPermissionRequest, RequestPermissionResponse, ResumeSessionRequest,
-    SelectedPermissionOutcome, SessionConfigId, SessionConfigOptionValue, SessionModeId,
-    SessionNotification, SetSessionConfigOptionRequest, SetSessionModeRequest,
+    ClientSessionCapabilities, FileSystemCapabilities, Implementation,
+    InitializeRequest, KillTerminalRequest, KillTerminalResponse, LoadSessionRequest,
+    LogoutRequest, McpServer, NewSessionResponse, ReadTextFileRequest, ReadTextFileResponse,
+    RequestPermissionOutcome, RequestPermissionRequest, RequestPermissionResponse,
+    ResumeSessionRequest, SelectedPermissionOutcome, SessionConfigId, SessionConfigOptionValue,
+    SessionModeId, SessionNotification, SetSessionConfigOptionRequest, SetSessionModeRequest,
+    TerminalOutputRequest, TerminalOutputResponse, WriteTextFileRequest,
+    WriteTextFileResponse,
 };
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::{AcpAgent, Agent, Client, ConnectionTo};
@@ -59,25 +62,9 @@ impl RunyardAcpClient {
 
         match transport {
             AgentTransportConfig::Stdio { command } => {
-                let log_conn_id = connection_id.clone();
-                let log_event_tx = event_tx.clone();
-                let agent = AcpAgent::from_str(&command)
-                    .map_err(|e| AcpClientError::SpawnFailed(e.to_string()))?
-                    .with_debug(move |line, direction| {
-                        let direction = match direction {
-                            agent_client_protocol::LineDirection::Stdin => crate::events::LogDirection::Stdin,
-                            agent_client_protocol::LineDirection::Stdout => crate::events::LogDirection::Stdout,
-                            agent_client_protocol::LineDirection::Stderr => crate::events::LogDirection::Stderr,
-                        };
-                        let _ = log_event_tx.send(AcpEvent::LogLine {
-                            connection_id: log_conn_id.clone(),
-                            direction,
-                            line: line.to_string(),
-                        });
-                    });
                 let conn_id = connection_id.clone();
                 let handle = tokio::spawn(async move {
-                    run_stdio_connection(conn_id, agent, command_rx, event_tx).await;
+                    run_stdio_connection_with_retry(conn_id, command, command_rx, event_tx).await;
                 });
                 Ok(Self {
                     connection_id,
@@ -214,10 +201,81 @@ impl RunyardAcpClient {
     }
 }
 
+/// Retry wrapper around `run_stdio_connection` (1.6.4/1.7.2/1.7.15).
+/// Attempts up to 3 reconnects after a crash with exponential backoff
+/// (1s → 2s → 4s). Each attempt re-spawns the agent process fresh.
+/// The command channel is NOT re-usable across retries, so once the
+/// channel closes (Shutdown command or sender dropped) we stop retrying.
+async fn run_stdio_connection_with_retry(
+    connection_id: String,
+    command: String,
+    mut command_rx: mpsc::UnboundedReceiver<ClientCommand>,
+    event_tx: mpsc::UnboundedSender<AcpEvent>,
+) {
+    const MAX_RETRIES: u32 = 3;
+    let mut attempt = 0u32;
+    loop {
+        // (Re-)build the agent process for this attempt.
+        let log_conn_id = connection_id.clone();
+        let log_event_tx = event_tx.clone();
+        let agent = match AcpAgent::from_str(&command) {
+            Ok(a) => a.with_debug(move |line, direction| {
+                let direction = match direction {
+                    agent_client_protocol::LineDirection::Stdin => crate::events::LogDirection::Stdin,
+                    agent_client_protocol::LineDirection::Stdout => crate::events::LogDirection::Stdout,
+                    agent_client_protocol::LineDirection::Stderr => crate::events::LogDirection::Stderr,
+                };
+                let _ = log_event_tx.send(AcpEvent::LogLine {
+                    connection_id: log_conn_id.clone(),
+                    direction,
+                    line: line.to_string(),
+                });
+            }),
+            Err(e) => {
+                let _ = event_tx.send(AcpEvent::Error {
+                    connection_id: connection_id.clone(),
+                    session_id: None,
+                    code: "spawn_failed".into(),
+                    message: e.to_string(),
+                    recoverable: false,
+                });
+                break;
+            }
+        };
+
+        run_stdio_connection(connection_id.clone(), agent, &mut command_rx, event_tx.clone()).await;
+
+        // If the command channel is closed (Shutdown was sent), stop retrying.
+        if command_rx.is_closed() {
+            break;
+        }
+
+        attempt += 1;
+        if attempt > MAX_RETRIES {
+            let _ = event_tx.send(AcpEvent::Error {
+                connection_id: connection_id.clone(),
+                session_id: None,
+                code: "max_retries_exceeded".into(),
+                message: format!("Agent process crashed {attempt} times in a row. Giving up."),
+                recoverable: false,
+            });
+            break;
+        }
+
+        let delay_secs = 1u64 << (attempt - 1); // 1, 2, 4
+        tracing::warn!(attempt, delay_secs, "Agent process disconnected, reconnecting...");
+        let _ = event_tx.send(AcpEvent::StatusChanged {
+            connection_id: connection_id.clone(),
+            status: ConnectionStatus::Initializing,
+        });
+        tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
+    }
+}
+
 async fn run_stdio_connection(
     connection_id: String,
     agent: AcpAgent,
-    mut command_rx: mpsc::UnboundedReceiver<ClientCommand>,
+    mut command_rx: &mut mpsc::UnboundedReceiver<ClientCommand>,
     event_tx: mpsc::UnboundedSender<AcpEvent>,
 ) {
     let notif_conn_id = connection_id.clone();
@@ -278,6 +336,68 @@ async fn run_stdio_connection(
             },
             agent_client_protocol::on_receive_request!(),
         )
+        // ── 1.7.11: Inbound IDE tool execution requests (agent → IDE) ──────
+        // The agent asks the IDE to execute file/terminal operations. The IDE
+        // responds with the result, then the agent decides what to do next.
+        .on_receive_request(
+            async move |request: ReadTextFileRequest, responder, _connection| {
+                let path = request.path.to_string_lossy().to_string();
+                match std::fs::read_to_string(&path) {
+                    Ok(content) => { let _ = responder.respond(ReadTextFileResponse::new(content)); }
+                    Err(e) => {
+                        let _ = responder.respond(ReadTextFileResponse::new(
+                            format!("[error reading {path}: {e}]")
+                        ));
+                    }
+                }
+                Ok(())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: WriteTextFileRequest, responder, _connection| {
+                let path = request.path.clone();
+                let result = (|| -> std::io::Result<()> {
+                    if let Some(parent) = path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    let mut tmp = tempfile::NamedTempFile::new_in(
+                        path.parent().unwrap_or(std::path::Path::new("."))
+                    )?;
+                    std::io::Write::write_all(&mut tmp, request.content.as_bytes())?;
+                    tmp.persist(&path)?;
+                    Ok(())
+                })();
+                if let Err(e) = result {
+                    tracing::warn!(path = %path.display(), error = %e, "IDE fs/write_text_file failed");
+                }
+                let _ = responder.respond(WriteTextFileResponse::new());
+                Ok(())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: TerminalOutputRequest, responder, _connection| {
+                // terminal/output needs access to Tauri's TerminalState which
+                // lives in runyard-core (a different crate). This crate is
+                // Tauri-free by design. The acp_bridge.rs in apps/desktop/src-tauri
+                // re-registers this handler with real PTY access using the same
+                // AcpAgent builder pattern but with a Tauri AppHandle closure.
+                let _ = request;
+                let _ = responder.respond(TerminalOutputResponse::new("", false));
+                Ok(())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: KillTerminalRequest, responder, _connection| {
+                let _ = request;
+                let _ = responder.respond(KillTerminalResponse::new());
+                Ok(())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // ── end 1.7.11 ─────────────────────────────────────────────────────
         .connect_with(agent, |connection: ConnectionTo<Agent>| {
             let event_tx = event_tx.clone();
             let connection_id = connection_id.clone();

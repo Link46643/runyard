@@ -16,7 +16,14 @@
     Terminal,
     RefreshCw,
   } from "lucide-svelte";
+  import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+  import { webSocketClient } from "@runyard/common";
   import { acpStore } from "../stores/acpStore.svelte.js";
+
+  async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+    if (webSocketClient.status === "connected") return webSocketClient.invoke<T>(cmd, args);
+    return tauriInvoke<T>(cmd, args);
+  }
   import type {
     AcpAgentConfig,
     AcpTransportKind,
@@ -271,14 +278,33 @@
   }
 
   async function submitForm() {
+    const agentId = formAgentId.trim();
+    const envVars = formEnvVars.filter((e) => e.key.trim());
+
+    // 1.6.8: Store secret env var values in the OS keychain.
+    // The value saved to SQLite will be empty ("") for secret entries;
+    // the real value is in the keychain, retrieved at launch time.
+    for (const v of envVars) {
+      if (v.is_secret && v.value) {
+        try {
+          await invoke("keychain_set", { agentId, key: v.key, value: v.value });
+          // Replace value with sentinel so the DB never persists the secret.
+          v.value = "";
+        } catch (e) {
+          console.warn("[AgentManagerPanel] keychain_set failed for", v.key, e);
+          // Fall back to storing in DB if keychain is unavailable.
+        }
+      }
+    }
+
     const payload = {
       name: formName.trim(),
-      agent_id: formAgentId.trim(),
+      agent_id: agentId,
       transport: formTransport,
       executable_path: formTransport === "stdio" ? (formExecutablePath.trim() || null) : null,
       spawn_command: formTransport === "stdio" ? (formSpawnCommand.trim() || null) : null,
       remote_url: (formTransport === "http" || formTransport === "websocket") ? (formRemoteUrl.trim() || null) : null,
-      env_vars: formEnvVars.filter((e) => e.key.trim()),
+      env_vars: envVars,
     };
 
     try {

@@ -113,6 +113,11 @@ pub fn run() {
             runyard_core::acp_bridge::acp_set_config_option,
             runyard_core::acp_bridge::acp_authenticate,
             runyard_core::acp_bridge::acp_logout,
+            // ── OS Keychain (1.6.8) ───────────────────────────────────────
+            runyard_core::keychain::keychain_set,
+            runyard_core::keychain::keychain_get,
+            runyard_core::keychain::keychain_delete,
+            runyard_core::keychain::keychain_resolve_agent_env,
             // ── MCP Server Config (1.8) ───────────────────────────────────
             runyard_core::mcp_server_db::mcp_server_list,
             runyard_core::mcp_server_db::mcp_server_get,

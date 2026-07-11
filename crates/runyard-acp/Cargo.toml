@@ -20,6 +20,9 @@ tracing = "0.1"
 # new library to the workspace as a whole - just made directly nameable here
 # too, so the discovery engine can live in this (testable) crate.
 which = "6"
+# Atomic file writes for the fs/write_text_file IDE tool handler (1.7.11).
+# tempfile is already used by runyard-core at the same version.
+tempfile = "3"
 
 # HTTP/WebSocket transports (1.7.3/1.7.4) are deferred: the protocol itself
 # lists them as Draft RFD status (not yet stabilized), and their TLS stack

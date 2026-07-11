@@ -102,6 +102,33 @@ class AcpStore {
           break;
         }
         default: {
+          // 1.7.16 middleware: intercept permission_requested events and run
+          // the middleware blocklist check before dispatching to the UI.
+          if (payload.type === "permission_requested") {
+            const { acpMiddlewareStore } = await import("./acpMiddlewareStore.svelte.js");
+            const allowed = acpMiddlewareStore.shouldAllowPermission(
+              (payload as any).tool_name ?? "",
+              (payload as any).session_id ?? "",
+            );
+            if (!allowed) {
+              // Auto-deny: call respond_permission with no option_id (cancel).
+              this.respondPermission(
+                connId,
+                (payload as any).request_id ?? "",
+                undefined,
+              ).catch(() => {});
+              break; // Don't dispatch the card to the UI.
+            }
+          }
+          // 1.7.16 cost tracking: accumulate session costs.
+          if (payload.type === "session_info_update") {
+            const info = (payload as any).info;
+            if (typeof info?.cost_usd === "number" && (payload as any).session_id) {
+              import("./acpMiddlewareStore.svelte.js").then(({ acpMiddlewareStore }) => {
+                acpMiddlewareStore.recordSessionCost((payload as any).session_id, info.cost_usd);
+              });
+            }
+          }
           window.dispatchEvent(
             new CustomEvent(`acp:${payload.type}`, { detail: payload })
           );

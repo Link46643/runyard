@@ -26,6 +26,9 @@ pub mod skills_db;
 pub mod agent_tasks_db;
 pub mod notes_db;
 
+// Phase 1.6.8: OS keychain for secret env var storage
+pub mod keychain;
+
 
 // Re-export state types for Tauri setup
 pub use terminal::TerminalState;
