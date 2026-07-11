@@ -6,6 +6,10 @@ export const DEFAULT_SETTINGS = {
         line_wrap: false,
         format_on_save: false,
         vim_mode: false,
+        emacs_mode: false,
+        show_minimap: false,
+        show_fold_gutter: true,
+        sticky_scroll: false,
     },
     terminal: {
         default_shell: null,

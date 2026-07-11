@@ -1,3 +1,4 @@
+export * from "original-tauri-event";
 export type UnlistenFn = () => void;
 export declare function listen<T>(event: string, handler: (event: {
     payload: T;

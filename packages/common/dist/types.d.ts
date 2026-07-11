@@ -1,5 +1,5 @@
 export type WorkspaceId = string;
-export type TabType = "editor" | "explorer" | "terminal" | "chat" | "git" | "settings" | "agent-manager" | "orchestrator" | "welcome";
+export type TabType = "editor" | "explorer" | "terminal" | "chat" | "git" | "settings" | "agent-manager" | "mcp-manager" | "skills" | "agent-tasks" | "notes" | "todo" | "diff-viewer" | "sandbox" | "workspace-switcher" | "orchestrator" | "welcome";
 export interface Tab {
     id: string;
     type: TabType;
@@ -73,6 +73,10 @@ export interface EditorSettings {
     line_wrap: boolean;
     format_on_save: boolean;
     vim_mode: boolean;
+    emacs_mode: boolean;
+    show_minimap: boolean;
+    show_fold_gutter: boolean;
+    sticky_scroll: boolean;
 }
 export interface TerminalSettings {
     default_shell: string | null;

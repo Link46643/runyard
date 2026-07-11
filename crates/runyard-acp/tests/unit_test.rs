@@ -155,3 +155,34 @@ fn has_config_dir_does_not_panic_for_arbitrary_names() {
     let _ = runyard_acp::discovery::has_config_dir("gemini");
     let _ = runyard_acp::discovery::has_config_dir("does-not-exist-xyzzy-12345");
 }
+
+#[tokio::test]
+async fn test_spawn_opencode() {
+    let commands = vec![
+        "opencode-acp",
+        "cmd.exe /c opencode-acp"
+    ];
+    for cmd in commands {
+        let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
+        println!("TESTING CONNECT TO: {}", cmd);
+        let client = runyard_acp::RunyardAcpClient::connect(
+            AgentTransportConfig::stdio(cmd),
+            event_tx
+        ).await;
+        match client {
+            Ok(c) => {
+                println!("  connect call Ok");
+                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                while let Ok(evt) = event_rx.try_recv() {
+                    println!("  EVENT: {:?}", evt);
+                }
+                c.shutdown().await;
+            }
+            Err(e) => {
+                println!("  connect call FAILED: {:?}", e);
+            }
+        }
+    }
+}
+
+

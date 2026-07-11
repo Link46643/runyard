@@ -20,7 +20,11 @@ pub enum AcpEvent {
     /// Connection lost or closed (cleanly or not).
     Disconnected { connection_id: String, reason: String },
     /// A new session was created.
-    SessionStarted { connection_id: String, session_id: String },
+    SessionStarted {
+        connection_id: String,
+        session_id: String,
+        config_options: Option<serde_json::Value>,
+    },
     /// A session was closed.
     SessionClosed { connection_id: String, session_id: String },
     /// Text/content chunk streamed from the agent's response.

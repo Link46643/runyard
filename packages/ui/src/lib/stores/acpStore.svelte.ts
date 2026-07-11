@@ -31,6 +31,7 @@ class AcpStore {
   agents = $state<AcpAgentConfig[]>([]);
   connections = $state<Record<string, AcpConnectionStatusValue>>({});
   sessions = $state<Record<string, string[]>>({});
+  sessionConfigOptions = $state<Record<string, any>>({});
   logs = $state<Record<string, LogEntry[]>>({});
   isLoading = $state(false);
   error = $state<string | null>(null);
@@ -65,9 +66,21 @@ class AcpStore {
           const agentRowOnConnect = this._connectionToAgentRow.get(connId);
           if (agentRowOnConnect) {
             invoke("acp_agent_set_status", { id: agentRowOnConnect, status: "connected", last_error: null })
+              .then(() => {
+                if ((payload as any).agent_capabilities) {
+                  return invoke("acp_agent_set_capabilities", {
+                    id: agentRowOnConnect,
+                    capabilities: (payload as any).agent_capabilities
+                  });
+                }
+              })
+              .then(() => {
+                this.loadAgents().catch(() => {});
+              })
               .catch(() => {});
+          } else {
+            this.loadAgents().catch(() => {});
           }
-          this.loadAgents().catch(() => {});
           break;
         }
         case "disconnected": {
@@ -77,6 +90,13 @@ class AcpStore {
           this.connections = restConns;
           this.sessions = restSess;
           this.logs = restLogs;
+          // clean up session config options for any session in that connection
+          const sessionsToClean = _sess ?? [];
+          const nextOptions = { ...this.sessionConfigOptions };
+          for (const sid of sessionsToClean) {
+            delete nextOptions[sid];
+          }
+          this.sessionConfigOptions = nextOptions;
           // Sync DB status back to disconnected and refresh agents list.
           const agentRowOnDisconnect = this._connectionToAgentRow.get(connId);
           if (agentRowOnDisconnect) {
@@ -108,6 +128,12 @@ class AcpStore {
             ...this.sessions,
             [connId]: [...existing, payload.session_id],
           };
+          if ((payload as any).config_options) {
+            this.sessionConfigOptions = {
+              ...this.sessionConfigOptions,
+              [payload.session_id]: (payload as any).config_options
+            };
+          }
           break;
         }
         case "session_closed": {
@@ -115,6 +141,8 @@ class AcpStore {
             (sid) => sid !== payload.session_id
           );
           this.sessions = { ...this.sessions, [connId]: filtered };
+          const { [payload.session_id]: _, ...restOptions } = this.sessionConfigOptions;
+          this.sessionConfigOptions = restOptions;
           break;
         }
         case "log_line": {

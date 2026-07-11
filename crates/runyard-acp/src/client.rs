@@ -496,25 +496,33 @@ async fn run_command_loop(
                 // those servers. See protocol-research-reference.md.
                 let request = agent_client_protocol::schema::v1::NewSessionRequest::new(&cwd)
                     .mcp_servers(parse_mcp_servers(mcp_servers));
-                let builder = connection.build_session_from(request);
-                match builder.block_task().start_session().await {
-                    Ok(active_session) => {
-                        let session_id = active_session.session_id().to_string();
-                        let (session_tx, session_rx) = mpsc::unbounded_channel();
-                        sessions.insert(session_id.clone(), session_tx);
+                match connection.send_request(request).block_task().await {
+                    Ok(response) => {
+                        let session_id = response.session_id.to_string();
+                        let config_options = response.config_options.clone();
+                        match connection.attach_session(response, Vec::new()) {
+                            Ok(active_session) => {
+                                let (session_tx, session_rx) = mpsc::unbounded_channel();
+                                sessions.insert(session_id.clone(), session_tx);
 
-                        let evt_tx = event_tx.clone();
-                        let conn_id = connection_id.clone();
-                        let sid = session_id.clone();
-                        let _ = connection.spawn(async move {
-                            run_session_worker(conn_id, sid, active_session, session_rx, evt_tx).await
-                        });
+                                let evt_tx = event_tx.clone();
+                                let conn_id = connection_id.clone();
+                                let sid = session_id.clone();
+                                let _ = connection.spawn(async move {
+                                    run_session_worker(conn_id, sid, active_session, session_rx, evt_tx).await
+                                });
 
-                        let _ = event_tx.send(AcpEvent::SessionStarted {
-                            connection_id: connection_id.clone(),
-                            session_id: session_id.clone(),
-                        });
-                        let _ = reply.send(Ok(session_id));
+                                let _ = event_tx.send(AcpEvent::SessionStarted {
+                                    connection_id: connection_id.clone(),
+                                    session_id: session_id.clone(),
+                                    config_options: serde_json::to_value(&config_options).ok(),
+                                });
+                                let _ = reply.send(Ok(session_id));
+                            }
+                            Err(e) => {
+                                let _ = reply.send(Err(AcpClientError::Protocol(e.to_string())));
+                            }
+                        }
                     }
                     Err(e) => {
                         let _ = reply.send(Err(AcpClientError::Protocol(e.to_string())));
@@ -774,6 +782,7 @@ fn reattach_session(
             let _ = event_tx.send(AcpEvent::SessionStarted {
                 connection_id: connection_id.to_string(),
                 session_id,
+                config_options: None,
             });
             let _ = reply.send(Ok(()));
         }

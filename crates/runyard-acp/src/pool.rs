@@ -56,7 +56,7 @@ impl AcpConnectionPool {
 
     pub async fn with_client<F, R>(&self, connection_id: &str, f: F) -> AcpResult<R>
     where
-        F: for<'a> FnOnce(&'a RunyardAcpClient) -> std::pin::Pin<Box<dyn std::future::Future<Output = AcpResult<R>> + 'a>>,
+        F: for<'a> FnOnce(&'a RunyardAcpClient) -> std::pin::Pin<Box<dyn std::future::Future<Output = AcpResult<R>> + Send + 'a>>,
     {
         let conns = self.connections.read().await;
         let client = conns

@@ -5,15 +5,38 @@ class WebSocketClient {
     eventHandlers = new Map();
     queuedRequests = [];
     isConnecting = false;
+    statusListeners = new Set();
+    status = "disconnected";
     constructor() {
         if (typeof window !== "undefined") {
-            this.connect();
+            const isTauri = !!window.__TAURI_INTERNALS__;
+            const hasRemoteToken = new URLSearchParams(window.location.search).has("token");
+            if (isTauri && !hasRemoteToken) {
+                this.status = "local";
+            }
+            else {
+                this.connect();
+            }
         }
+    }
+    setStatus(newStatus) {
+        this.status = newStatus;
+        for (const listener of this.statusListeners) {
+            listener(newStatus);
+        }
+    }
+    onStatusChange(callback) {
+        this.statusListeners.add(callback);
+        callback(this.status);
+        return () => {
+            this.statusListeners.delete(callback);
+        };
     }
     connect() {
         if (this.ws || this.isConnecting)
             return;
         this.isConnecting = true;
+        this.setStatus("connecting");
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host; // e.g. localhost:7820
         let token = localStorage.getItem("runyard:token") || "";
@@ -29,6 +52,7 @@ class WebSocketClient {
         socket.onopen = () => {
             console.log("[WebSocketClient] Connection open");
             this.isConnecting = false;
+            this.setStatus("connected");
             // Send queued messages
             for (const msg of this.queuedRequests) {
                 socket.send(msg);
@@ -70,6 +94,7 @@ class WebSocketClient {
             console.log("[WebSocketClient] Connection closed. Retrying in 2 seconds...");
             this.ws = null;
             this.isConnecting = false;
+            this.setStatus("disconnected");
             setTimeout(() => this.connect(), 2000);
         };
         socket.onerror = (err) => {

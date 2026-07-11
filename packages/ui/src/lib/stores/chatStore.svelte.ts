@@ -240,6 +240,41 @@ class ChatStore {
     }
   }
 
+  async insertMessage(role: "user" | "assistant", content: ContentBlock[], skipAppend = false) {
+    if (!this.activeConversationId) return null;
+    const nonStreamingMsgs = this.messages.filter(m => !m.id.startsWith("streaming-"));
+    const parentId = nonStreamingMsgs.length > 0 ? nonStreamingMsgs[nonStreamingMsgs.length - 1].id : null;
+
+    try {
+      const msg = await invoke<Message>("chat_message_insert", {
+        conversationId: this.activeConversationId,
+        parentId,
+        role,
+        content,
+      });
+      
+      if (!skipAppend) {
+        this.messages = [...this.messages, msg];
+      }
+      
+      // Update local conversation object's message_count and updated_at
+      this.conversations = this.conversations.map((c) => {
+        if (c.id === this.activeConversationId) {
+          return {
+            ...c,
+            message_count: c.message_count + 1,
+            updated_at: Date.now()
+          };
+        }
+        return c;
+      });
+      return msg;
+    } catch (e) {
+      console.error("[ChatStore] Failed to insert message", e);
+      return null;
+    }
+  }
+
   async updateMessage(id: string, content: ContentBlock[]) {
     try {
       const updated = await invoke<Message>("chat_message_update", {

@@ -9,7 +9,7 @@
   import { acpStore } from "../stores/acpStore.svelte.js";
   import { chatInputStore } from "../stores/chatInputStore.svelte.js";
   import { invoke } from "@tauri-apps/api/core";
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
 
   let { tab }: { tab?: { props: Record<string, unknown> } } = $props();
 
@@ -88,26 +88,28 @@
     if (!streaming) return;
 
     // Push an empty assistant message as a placeholder for the incoming stream
-    const convId = chatStore.activeConversationId;
-    if (convId) {
-      const parentId =
-        chatStore.messages.length > 0
-          ? chatStore.messages[chatStore.messages.length - 1].id
-          : null;
+    untrack(() => {
+      const convId = chatStore.activeConversationId;
+      if (convId) {
+        const parentId =
+          chatStore.messages.length > 0
+            ? chatStore.messages[chatStore.messages.length - 1].id
+            : null;
 
-      // Insert a streaming placeholder message locally (no DB round-trip yet).
-      // We synthesise a temporary Message object and append it to the list.
-      const tempMsg = {
-        id: `streaming-${Date.now()}`,
-        conversation_id: convId,
-        parent_id: parentId,
-        role: "assistant" as const,
-        content: [{ type: "text" as const, text: "" }],
-        created_at: Date.now(),
-        is_pinned: false,
-      };
-      chatStore.messages = [...chatStore.messages, tempMsg];
-    }
+        // Insert a streaming placeholder message locally (no DB round-trip yet).
+        // We synthesise a temporary Message object and append it to the list.
+        const tempMsg = {
+          id: `streaming-${Date.now()}`,
+          conversation_id: convId,
+          parent_id: parentId,
+          role: "assistant" as const,
+          content: [{ type: "text" as const, text: "" }],
+          created_at: Date.now(),
+          is_pinned: false,
+        };
+        chatStore.messages = [...chatStore.messages, tempMsg];
+      }
+    });
 
     function onChunk(e: Event) {
       const detail = (e as CustomEvent).detail as { text?: string } | undefined;
@@ -115,7 +117,7 @@
       if (!chunk) return;
 
       // Append chunk text to the last assistant message's first TextBlock
-      const msgs = chatStore.messages;
+      const msgs = untrack(() => chatStore.messages);
       if (msgs.length === 0) return;
       const last = msgs[msgs.length - 1];
       if (last.role !== "assistant") return;
@@ -126,7 +128,9 @@
       // Produce a new messages array with the updated text block
       const updatedBlock = { ...firstBlock, text: firstBlock.text + chunk };
       const updatedMsg = { ...last, content: [updatedBlock, ...last.content.slice(1)] };
-      chatStore.messages = [...msgs.slice(0, -1), updatedMsg];
+      untrack(() => {
+        chatStore.messages = [...msgs.slice(0, -1), updatedMsg];
+      });
     }
 
     function onCompleted(_e: Event) {
@@ -162,49 +166,37 @@
   );
   const hasActiveAgent = $derived(activeAgent !== null && activeAgent !== undefined);
 
+  /**
+   * Extract model choices advertised by the active ACP session via
+   * `configOptions` (the protocol-correct mechanism, per the ACP spec on
+   * Session Config Options). Falls back to an empty array — we do NOT
+   * fabricate model lists; the user can still type a model name manually.
+   */
   const availableModels = $derived.by(() => {
-    if (!activeAgent) return ["claude-3-5-sonnet-latest", "gemini-2.5-pro", "gpt-4o", "deepseek-reasoner"];
+    if (!chatInputStore.activeSessionId) return [];
+    const opts = acpStore.sessionConfigOptions[chatInputStore.activeSessionId];
+    if (!Array.isArray(opts)) return [];
     
-    const agentId = activeAgent.agent_id.toLowerCase();
-    if (agentId.includes("claude")) {
-      return [
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-haiku-latest",
-        "claude-3-opus-latest"
-      ];
-    } else if (agentId.includes("gemini")) {
-      return [
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-1.5-pro"
-      ];
-    } else if (agentId.includes("opencode")) {
-      return [
-        "opencode-32b",
-        "opencode-7b",
-        "deepseek-coder-33b",
-        "gpt-4o"
-      ];
-    } else if (agentId.includes("goose")) {
-      return [
-        "gpt-4o",
-        "claude-3-5-sonnet-latest",
-        "gemini-2.5-pro"
-      ];
-    } else if (agentId.includes("codex")) {
-      return [
-        "gpt-4o",
-        "gpt-4-turbo",
-        "gpt-3.5-turbo"
-      ];
+    // Each item in config_options is a SessionConfigOption (a union type).
+    // Model-related options use category "model" and have an options/select array.
+    for (const opt of opts) {
+      if (!opt || typeof opt !== "object") continue;
+      const category = (opt as any).category ?? "";
+      if (
+        typeof category === "string" &&
+        category.toLowerCase().includes("model")
+      ) {
+        // SessionConfigSelect shape: { options: [{ id, value, label }] }
+        const choices = (opt as any).options ?? (opt as any).choices ?? (opt as any).values ?? [];
+        if (Array.isArray(choices) && choices.length > 0) {
+          return choices.map((c: any) => {
+            if (typeof c === "string") return c;
+            return (c as any).value ?? (c as any).id ?? (c as any).label ?? String(c);
+          }).filter(Boolean);
+        }
+      }
     }
-    
-    return [
-      "claude-3-5-sonnet-latest",
-      "gemini-2.5-pro",
-      "gpt-4o",
-      "deepseek-reasoner"
-    ];
+    return [];
   });
 
   // Rough, clearly-labeled estimate (~4 chars/token) - there is no real
@@ -326,19 +318,32 @@
 
       {#if activeConversation}
         {#if editingModel}
-          <select
-            class="model-select"
-            bind:value={modelDraft}
-            onchange={saveModel}
-            onblur={saveModel}
-          >
-            {#each availableModels as modelOption}
-              <option value={modelOption}>{modelOption}</option>
-            {/each}
-            {#if !availableModels.includes(modelDraft)}
-              <option value={modelDraft}>{modelDraft}</option>
-            {/if}
-          </select>
+          {#if availableModels.length > 0}
+            <!-- Agent advertised model options via ACP configOptions — show a proper dropdown -->
+            <select
+              class="model-select"
+              bind:value={modelDraft}
+              onchange={saveModel}
+              onblur={saveModel}
+            >
+              {#each availableModels as modelOption}
+                <option value={modelOption}>{modelOption}</option>
+              {/each}
+              {#if !availableModels.includes(modelDraft)}
+                <option value={modelDraft}>{modelDraft}</option>
+              {/if}
+            </select>
+          {:else}
+            <!-- No ACP config options yet — show a free-text input -->
+            <input
+              class="model-select model-select--text"
+              type="text"
+              bind:value={modelDraft}
+              onchange={saveModel}
+              onblur={saveModel}
+              placeholder="Enter model name…"
+            />
+          {/if}
         {:else}
           <button class="model-badge" onclick={startEditModel} title="Click to change model">{activeConversation.model}</button>
         {/if}
@@ -495,6 +500,10 @@
     color: var(--text);
     cursor: pointer;
     outline: none;
+  }
+  .model-select--text {
+    cursor: text;
+    min-width: 160px;
   }
   .branch-menu-wrapper {
     position: relative;

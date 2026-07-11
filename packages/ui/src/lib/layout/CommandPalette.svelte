@@ -279,7 +279,7 @@
         {#if results.length === 0}
           <div class="no-results">No results for "{query}"</div>
         {:else}
-          {flatIndex = 0}
+          {@const _ = (flatIndex = 0)}
           {#each grouped as group, gi}
             <div class="result-group">
               <div class="group-label">

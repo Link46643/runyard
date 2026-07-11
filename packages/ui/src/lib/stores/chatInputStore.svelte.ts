@@ -2,6 +2,7 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { webSocketClient } from "@runyard/common";
 import { acpStore } from "./acpStore.svelte.js";
 import { chatStore } from "./chatStore.svelte.js";
+import { untrack } from "svelte";
 
 async function invoke<T>(cmd: string, args?: any): Promise<T> {
   if (webSocketClient.status === "connected") {
@@ -36,6 +37,23 @@ class ChatInputStore {
   private _completedHandler: ((e: Event) => void) | null = null;
   private _errorHandler: ((e: Event) => void) | null = null;
 
+  private async _persistStreamingAssistantMessage() {
+    const msgs = untrack(() => chatStore.messages);
+    if (msgs.length > 0) {
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === "assistant" && last.id.startsWith("streaming-")) {
+        const dbMsg = await chatStore.insertMessage("assistant", last.content, true);
+        if (dbMsg) {
+          untrack(() => {
+            chatStore.messages = chatStore.messages.map((m) =>
+              m.id === last.id ? dbMsg : m
+            );
+          });
+        }
+      }
+    }
+  }
+
   private _removeStreamListeners() {
     if (this._chunkHandler) {
       window.removeEventListener("acp:agent_message_chunk", this._chunkHandler);
@@ -59,14 +77,16 @@ class ChatInputStore {
       this.isStreaming = true;
     };
 
-    this._completedHandler = (_e: Event) => {
+    this._completedHandler = async (_e: Event) => {
       this.isStreaming = false;
       this._removeStreamListeners();
+      await this._persistStreamingAssistantMessage();
     };
 
-    this._errorHandler = (_e: Event) => {
+    this._errorHandler = async (_e: Event) => {
       this.isStreaming = false;
       this._removeStreamListeners();
+      await this._persistStreamingAssistantMessage();
     };
 
     window.addEventListener("acp:agent_message_chunk", this._chunkHandler);
@@ -172,6 +192,17 @@ class ChatInputStore {
               console.warn("[ChatInputStore] Failed to set initial model on ACP session", cfgErr);
             }
           }
+          
+          const rawSystemPrompt = activeConv?.system_prompt || "You are a software engineering (SWE) agent working inside the Runyard IDE.";
+          let formattedSystemPrompt = rawSystemPrompt;
+          if (!formattedSystemPrompt.toLowerCase().includes("runyard")) {
+            formattedSystemPrompt = `${formattedSystemPrompt.trim()}\n\nYou are a software engineering (SWE) agent working inside the Runyard IDE.`;
+          }
+          try {
+            await acpStore.setConfigOption(connectionId, sessionId, "system_prompt", formattedSystemPrompt);
+          } catch (cfgErr) {
+            console.warn("[ChatInputStore] Failed to set system prompt on ACP session", cfgErr);
+          }
         } catch (e) {
           console.error("[ChatInputStore] Failed to create ACP session", e);
           await this._insertUserMessageStub(conversationId, trimmedText);
@@ -221,8 +252,10 @@ class ChatInputStore {
         console.error("[ChatInputStore] Failed to cancel ACP", e);
       });
     }
-    this.isStreaming = false;
-    this._removeStreamListeners();
+    this._persistStreamingAssistantMessage().then(() => {
+      this.isStreaming = false;
+      this._removeStreamListeners();
+    });
   }
 
   addAttachment(name: string, content: string, type: string) {
