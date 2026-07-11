@@ -27,43 +27,62 @@ pub struct KnownAgent {
     /// Directory name to check for under the user's config home, if any
     /// (see `has_config_dir`).
     pub config_dir_name: Option<&'static str>,
+    /// Extra CLI arguments required to start this binary in ACP server mode.
+    /// Most agents speak ACP as soon as you run the bare binary; some (like
+    /// OpenCode, whose CLI is a general-purpose entry point) require an
+    /// explicit subcommand. Data-driven so the UI never needs a per-agent
+    /// `if (agentId === "...")` branch - it just joins executable_path with
+    /// these args to get a working spawn_command.
+    pub acp_args: &'static [&'static str],
 }
 
 /// The static catalog of agents Runyard scans for. Per
 /// engineering-todo-v2.md 1.6.2: "scan PATH for known executables (`claude`,
-/// `gemini`, `codex`, `goose`, etc.)". Cross-referenced against the live ACP
-/// agents directory (agentclientprotocol.com/get-started/agents) for the
-/// right executable names as of this writing.
+/// `gemini`, `codex`, `goose`, etc.)". Cross-referenced against each agent's
+/// own ACP documentation for the right executable name and required args:
+/// - Claude Code: `claude` (no extra args needed once ACP mode is enabled)
+/// - Gemini CLI: `gemini` (no extra args)
+/// - Codex CLI: `codex` (no extra args)
+/// - Goose: `goose session --acp` per goose's own ACP docs
+/// - OpenCode: `opencode acp` per opencode.ai/docs/acp - the `opencode`
+///   binary is a general CLI; the `acp` subcommand starts the ACP server.
+///   There is no separate `opencode-acp` binary (a wrong guess previously
+///   in this catalog, now corrected).
 pub const KNOWN_AGENTS: &[KnownAgent] = &[
     KnownAgent {
         agent_id: "claude-code",
         display_name: "Claude Code",
         executable_names: &["claude"],
         config_dir_name: Some("claude"),
+        acp_args: &[],
     },
     KnownAgent {
         agent_id: "gemini-cli",
         display_name: "Gemini CLI",
         executable_names: &["gemini"],
         config_dir_name: Some("gemini"),
+        acp_args: &[],
     },
     KnownAgent {
         agent_id: "codex-cli",
         display_name: "Codex CLI",
         executable_names: &["codex"],
         config_dir_name: Some("codex"),
+        acp_args: &[],
     },
     KnownAgent {
         agent_id: "goose",
         display_name: "Goose",
         executable_names: &["goose"],
         config_dir_name: Some("goose"),
+        acp_args: &["session", "--acp"],
     },
     KnownAgent {
         agent_id: "opencode",
         display_name: "OpenCode",
-        executable_names: &["opencode", "opencode-acp"],
+        executable_names: &["opencode"],
         config_dir_name: Some("opencode"),
+        acp_args: &["acp"],
     },
 ];
 
@@ -75,6 +94,13 @@ pub struct DiscoveredAgent {
     pub name: String,
     pub executable_path: String,
     pub has_config_dir: bool,
+    /// Ready-to-use spawn command (executable path + any required ACP args,
+    /// shell-quoted so paths with spaces survive `shell_words::split` on the
+    /// way back in). This is what should go straight into the agent's
+    /// `spawn_command` field - never just `executable_path` alone, since a
+    /// bare binary for agents like OpenCode starts the interactive TUI, not
+    /// the ACP JSON-RPC server.
+    pub recommended_spawn_command: String,
 }
 
 /// Scans the real `PATH` for every executable name in `KNOWN_AGENTS`. Pure
@@ -99,15 +125,34 @@ pub fn discover_in(catalog: &[KnownAgent], search_paths: Option<impl AsRef<std::
             which::which_in(exe_name, search_paths.as_ref(), &cwd).ok()
         });
         if let Some(path) = hit {
+            let path_str = path.to_string_lossy().into_owned();
             found.push(DiscoveredAgent {
                 agent_id: agent.agent_id.to_string(),
                 name: agent.display_name.to_string(),
-                executable_path: path.to_string_lossy().into_owned(),
+                executable_path: path_str.clone(),
                 has_config_dir: agent.config_dir_name.map(has_config_dir).unwrap_or(false),
+                recommended_spawn_command: build_spawn_command(&path_str, agent.acp_args),
             });
         }
     }
     found
+}
+
+/// Joins an executable path with its required ACP args into one spawn
+/// command string, quoting the path if it contains spaces (common on
+/// Windows: `C:\Program Files\...`) so `shell_words::split` on the
+/// consuming side (see `AcpAgent::from_str` in agent-client-protocol-tokio)
+/// reconstructs the exact same argv. This is the ONE place spawn commands
+/// are built from discovery data, so there is no per-OS or per-agent
+/// special-casing anywhere else in the codebase.
+fn build_spawn_command(executable_path: &str, acp_args: &[&str]) -> String {
+    let quoted_path = shell_words::quote(executable_path).into_owned();
+    if acp_args.is_empty() {
+        quoted_path
+    } else {
+        let quoted_args: Vec<String> = acp_args.iter().map(|a| shell_words::quote(a).into_owned()).collect();
+        format!("{quoted_path} {}", quoted_args.join(" "))
+    }
 }
 
 /// Best-effort check for a per-agent config directory under the user's
@@ -164,6 +209,7 @@ mod tests {
             display_name: "Fake Agent",
             executable_names: &["fake-agent"],
             config_dir_name: None,
+            acp_args: &[],
         }];
         // Explicit search path - no dependency on (or interference with)
         // the real process PATH, so this is safe under parallel test runs.
@@ -174,6 +220,10 @@ mod tests {
         assert_eq!(found.len(), 1, "expected to discover exactly the fake agent, got {found:?}");
         assert_eq!(found[0].agent_id, "fake-agent");
         assert!(!found[0].executable_path.is_empty());
+        assert_eq!(
+            found[0].recommended_spawn_command, found[0].executable_path,
+            "an agent with no acp_args should recommend the bare executable path"
+        );
     }
 
     #[test]
@@ -201,11 +251,44 @@ mod tests {
             display_name: "Multi Name Agent",
             executable_names: &["agent-a", "agent-b"],
             config_dir_name: None,
+            acp_args: &[],
         }];
         let found = discover_in(catalog, Some(dir.to_string_lossy().into_owned()));
 
         let _ = std::fs::remove_dir_all(&dir);
         assert_eq!(found.len(), 1, "expected exactly one entry even though both alt names exist, got {found:?}");
+    }
+
+    #[test]
+    fn opencode_recommended_spawn_command_includes_acp_subcommand() {
+        // Regression test for a real bug: discovering the bare `opencode`
+        // binary and using it as-is would start OpenCode's interactive TUI,
+        // not its ACP server. opencode.ai/docs/acp documents the real
+        // invocation as `opencode acp` - verify the catalog entry and the
+        // command-builder both produce that, not just the bare path.
+        let opencode = KNOWN_AGENTS.iter().find(|a| a.agent_id == "opencode")
+            .expect("opencode should be in the known agents catalog");
+        assert_eq!(opencode.acp_args, &["acp"], "opencode requires the 'acp' subcommand to speak ACP");
+
+        let cmd = build_spawn_command("/usr/local/bin/opencode", opencode.acp_args);
+        assert_eq!(cmd, "/usr/local/bin/opencode acp");
+
+        // Also verify goose, which needs a longer arg chain per its own ACP docs.
+        let goose = KNOWN_AGENTS.iter().find(|a| a.agent_id == "goose")
+            .expect("goose should be in the known agents catalog");
+        let goose_cmd = build_spawn_command("/usr/local/bin/goose", goose.acp_args);
+        assert_eq!(goose_cmd, "/usr/local/bin/goose session --acp");
+    }
+
+    #[test]
+    fn build_spawn_command_quotes_paths_with_spaces() {
+        // Windows commonly installs to "C:\Program Files\...". The quoted
+        // command must round-trip through shell_words::split back to the
+        // exact same single path argument (this is what
+        // agent-client-protocol-tokio's AcpAgent::from_str does on connect).
+        let cmd = build_spawn_command("C:\\Program Files\\OpenCode\\opencode.exe", &["acp"]);
+        let parsed = shell_words::split(&cmd).expect("recommended command must be valid shell_words syntax");
+        assert_eq!(parsed, vec!["C:\\Program Files\\OpenCode\\opencode.exe", "acp"]);
     }
 
     #[test]

@@ -23,6 +23,12 @@ which = "6"
 # Atomic file writes for the fs/write_text_file IDE tool handler (1.7.11).
 # tempfile is already used by runyard-core at the same version.
 tempfile = "3"
+# Cross-platform argv quoting for discovery's recommended spawn commands.
+# Already a transitive dependency via agent-client-protocol-tokio (which
+# uses it to parse spawn commands back apart) - made directly nameable so
+# discovery.rs can build correctly-quoted commands without duplicating that
+# logic or risking a version mismatch between the two crates' parsers.
+shell-words = "1"
 
 # HTTP/WebSocket transports (1.7.3/1.7.4) are deferred: the protocol itself
 # lists them as Draft RFD status (not yet stabilized), and their TLS stack

@@ -339,8 +339,13 @@
         name: d.name,
         agent_id: d.agent_id,
         transport: "stdio",
+        // Always use the recommended spawn command, never executable_path
+        // alone - some agents (OpenCode) require a subcommand to run their
+        // ACP server rather than their default interactive mode. Bug fixed:
+        // this used to be spawn_command: null, which meant a discovered
+        // OpenCode agent silently failed to speak ACP on connect.
         executable_path: d.executable_path,
-        spawn_command: null,
+        spawn_command: d.recommended_spawn_command,
         remote_url: null,
         env_vars: [],
       });
@@ -859,48 +864,52 @@
       {#if dialogMode === "add"}
         <div class="acp-guide-section">
           <button type="button" class="guide-toggle" onclick={() => showGuide = !showGuide}>
-            <span>❓ ACP Agents Setup & Installation Guide</span>
-            <span>{showGuide ? "▲" : "▼"}</span>
+            <span>ACP agent setup and installation guide</span>
+            {#if showGuide}
+              <ChevronUp size={14} strokeWidth={1.5} />
+            {:else}
+              <ChevronDown size={14} strokeWidth={1.5} />
+            {/if}
           </button>
-          
+
           {#if showGuide}
             <div class="guide-content">
               <p class="guide-intro">
-                ACP (Agent Client Protocol) allows Runyard to talk directly to your local coding agents over stdio (standard input/output). For them to connect successfully, you must install their adapters globally on your machine:
+                ACP (Agent Client Protocol) lets Runyard talk directly to local coding agents over stdio. Install the agent's own CLI, then use the spawn command shown below.
               </p>
-              
+
               <div class="guide-list">
                 <div class="guide-item">
-                  <span class="agent-title">🤖 OpenCode</span>
-                  <p class="agent-desc">First install the OpenCode engine and the ACP adapter globally:</p>
-                  <pre class="code-block">npm install -g opencode-ai opencode-acp</pre>
-                  <p class="agent-tip">Spawn command suggestion: <code>opencode acp</code></p>
+                  <span class="agent-title">OpenCode</span>
+                  <p class="agent-desc">Install the OpenCode CLI globally, then start it in ACP server mode with the <code>acp</code> subcommand:</p>
+                  <pre class="code-block">npm install -g opencode-ai</pre>
+                  <p class="agent-tip">Spawn command: <code>opencode acp</code></p>
                 </div>
 
                 <div class="guide-item">
-                  <span class="agent-title">🦉 Claude Code</span>
-                  <p class="agent-desc">Install Anthropic's official Claude Code CLI tool globally:</p>
+                  <span class="agent-title">Claude Code</span>
+                  <p class="agent-desc">Install Anthropic's Claude Code CLI globally:</p>
                   <pre class="code-block">npm install -g @anthropic-ai/claude-code</pre>
-                  <p class="agent-tip">Spawn command suggestion: <code>claude --acp</code> or <code>npx -y @anthropic-ai/claude-code@latest --acp</code></p>
+                  <p class="agent-tip">Spawn command: <code>claude --acp</code> or <code>npx -y @anthropic-ai/claude-code@latest --acp</code></p>
                 </div>
 
                 <div class="guide-item">
-                  <span class="agent-title">🦢 Goose</span>
+                  <span class="agent-title">Goose</span>
                   <p class="agent-desc">Install Block's Goose agent via your package manager or installer:</p>
-                  <pre class="code-block"># macOS/Linux:<br/>brew install goose</pre>
-                  <p class="agent-tip">Spawn command suggestion: <code>goose session --acp</code></p>
+                  <pre class="code-block">brew install goose</pre>
+                  <p class="agent-tip">Spawn command: <code>goose session --acp</code></p>
                 </div>
 
                 <div class="guide-item">
-                  <span class="agent-title">♊ Gemini CLI</span>
+                  <span class="agent-title">Gemini CLI</span>
                   <p class="agent-desc">Install the Gemini CLI tool globally:</p>
                   <pre class="code-block">npm install -g gemini-cli</pre>
-                  <p class="agent-tip">Spawn command suggestion: <code>gemini acp</code></p>
+                  <p class="agent-tip">Spawn command: <code>gemini acp</code></p>
                 </div>
               </div>
 
               <div class="guide-note">
-                <strong>💡 Windows Users:</strong> Runyard automatically executes npm-installed global commands (like <code>opencode</code> or <code>claude</code>) through a shell wrapper (<code>cmd.exe /c</code>) under the hood to ensure correct startup.
+                Runyard resolves the spawn command's executable through your system PATH on any platform. If an agent isn't found, use the "Discover" tab to scan PATH automatically, or provide an absolute path in "Executable path" above.
               </div>
             </div>
           {/if}

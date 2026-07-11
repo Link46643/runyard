@@ -64,6 +64,12 @@ export interface DiscoveredAcpAgent {
   name: string;
   executable_path: string;
   has_config_dir: boolean;
+  /** Ready-to-use spawn command (path + any required ACP subcommand/args,
+   * shell-quoted). Always use this for spawn_command, never
+   * executable_path alone - some agents (e.g. OpenCode) require an
+   * explicit subcommand to start their ACP server rather than their
+   * default interactive mode. */
+  recommended_spawn_command: string;
 }
 
 /** One entry from the live ACP Registry API (cdn.agentclientprotocol.com). */
