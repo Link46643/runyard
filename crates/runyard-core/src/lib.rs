@@ -29,6 +29,12 @@ pub mod notes_db;
 // Phase 1.6.8: OS keychain for secret env var storage
 pub mod keychain;
 
+// Workspace management (open folder, recent workspaces)
+pub mod workspace;
+
+// Agent sandbox enforcement + audit log
+pub mod sandbox;
+
 
 // Re-export state types for Tauri setup
 pub use terminal::TerminalState;

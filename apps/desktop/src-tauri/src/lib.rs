@@ -22,6 +22,8 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         // Managed state: terminal sessions and LSP servers
         .manage(TerminalState::default())
         .manage(LspState::default())
@@ -151,6 +153,17 @@ pub fn run() {
             runyard_core::notes_db::todo_update,
             runyard_core::notes_db::todo_delete,
             runyard_core::notes_db::todo_reorder,
+            // ── Workspace management ──────────────────────────────────────
+            runyard_core::workspace::workspace_open,
+            runyard_core::workspace::workspace_list_recent,
+            runyard_core::workspace::workspace_remove_recent,
+            runyard_core::workspace::workspace_resolve_path,
+            // ── Agent sandbox + audit log ─────────────────────────────────
+            runyard_core::sandbox::sandbox_get_config,
+            runyard_core::sandbox::sandbox_set_config,
+            runyard_core::sandbox::sandbox_audit_log,
+            runyard_core::sandbox::sandbox_get_audit_log,
+            runyard_core::sandbox::sandbox_check_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

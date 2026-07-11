@@ -146,6 +146,10 @@ pub fn init_db() -> SqlResult<()> {
     crate::agent_tasks_db::init_agent_task_tables(&conn)?;
     // Phase 1.11: Notes and TODOs.
     crate::notes_db::init_notes_tables(&conn)?;
+    // Workspace management (recent workspaces).
+    crate::workspace::init_workspace_tables(&conn)?;
+    // Agent sandbox enforcement + audit log.
+    crate::sandbox::init_sandbox_tables(&conn)?;
 
     Ok(())
 }
