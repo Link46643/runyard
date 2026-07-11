@@ -200,7 +200,20 @@ class AcpStore {
   }) {
     this.error = null;
     try {
-      await invoke("acp_agent_create", params);
+      const mapped = {
+        name: params.name,
+        agent_id: params.agentId,
+        transport: params.transport,
+        executable_path: params.executablePath || null,
+        spawn_command: params.spawnCommand || null,
+        remote_url: params.remoteUrl || null,
+        env_vars: params.envVars ? params.envVars.map(ev => ({
+          key: ev.key,
+          value: ev.value,
+          is_secret: ev.isSecret
+        })) : null
+      };
+      await invoke("acp_agent_create", mapped);
       await this.loadAgents();
     } catch (e) {
       this.error = String(e);
@@ -221,7 +234,20 @@ class AcpStore {
   }>) {
     this.error = null;
     try {
-      await invoke("acp_agent_update", { id, ...params });
+      const mapped: any = { id };
+      if (params.name !== undefined) mapped.name = params.name;
+      if (params.transport !== undefined) mapped.transport = params.transport;
+      if (params.executablePath !== undefined) mapped.executable_path = params.executablePath;
+      if (params.spawnCommand !== undefined) mapped.spawn_command = params.spawnCommand;
+      if (params.remoteUrl !== undefined) mapped.remote_url = params.remoteUrl;
+      if (params.envVars !== undefined) {
+        mapped.env_vars = params.envVars.map(ev => ({
+          key: ev.key,
+          value: ev.value,
+          is_secret: ev.isSecret
+        }));
+      }
+      await invoke("acp_agent_update", mapped);
       await this.loadAgents();
     } catch (e) {
       this.error = String(e);
