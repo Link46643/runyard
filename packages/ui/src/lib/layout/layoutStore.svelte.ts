@@ -582,6 +582,38 @@ class LayoutStore {
   openNotes(workspacePath = "../../") { this.openSingletonTab(`notes:${workspacePath}`, "notes", "Notes", { workspacePath }); }
   openTodo(workspacePath = "../../") { this.openSingletonTab(`todo:${workspacePath}`, "todo", "Todo", { workspacePath }); }
   openDiffViewer() { this.openSingletonTab("diff-viewer", "diff-viewer", "Diff viewer"); }
+  openSandbox() { this.openSingletonTab("sandbox", "sandbox", "Sandbox"); }
+
+  // ── Workspace switcher overlay (1.12.9) ──────────────────────────────────
+  /** Whether the workspace-switcher overlay is currently visible. */
+  workspaceSwitcherOpen = $state(false);
+
+  openWorkspaceSwitcher() {
+    this.workspaceSwitcherOpen = true;
+  }
+
+  closeWorkspaceSwitcher() {
+    this.workspaceSwitcherOpen = false;
+  }
+
+  /** Open a second (or additional) AI Chat tab alongside any existing one. Never focuses an existing chat tab. */
+  openChatSplit() {
+    const tabId = `chat:${Date.now()}`;
+    const tab: Tab = {
+      id: tabId,
+      type: "chat",
+      title: "AI Chat",
+      props: {},
+    };
+    const targetLeaf =
+      this.findFirstLeafNotExplorer(this.layout.root) ||
+      this.findFirstLeaf(this.layout.root);
+    if (targetLeaf) {
+      targetLeaf.tabs.push(tab);
+      targetLeaf.activeTabId = tab.id;
+      this.save();
+    }
+  }
 }
 
 export const layoutEngine = new LayoutStore();

@@ -6,3 +6,4 @@ export * from "./mcp-types.js";
 export * from "./skills-types.js";
 export * from "./agent-task-types.js";
 export * from "./notes-types.js";
+export * from "./workspace-types.js";

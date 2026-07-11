@@ -3,12 +3,70 @@
   import { commandRegistry } from "./commandRegistry.svelte.js";
   import { layoutEngine } from "./layoutStore.svelte.js";
   import { appStatus } from "./appStatusStore.svelte.js";
+  import {
+    FolderOpen,
+    Terminal,
+    GitBranch,
+    Cpu,
+    Layout,
+    Settings,
+    Zap,
+    BookOpen,
+    CheckSquare,
+    Command,
+  } from "lucide-svelte";
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
   let query = $state("");
   let selectedIndex = $state(0);
   let inputEl = $state<HTMLInputElement | undefined>(undefined);
+
+  // ── Platform detection ────────────────────────────────────────────────────
+  const isMac = typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac");
+
+  function formatShortcut(shortcut: string | undefined): string | undefined {
+    if (!shortcut) return undefined;
+    if (isMac) {
+      return shortcut.replace(/\bCtrl\b/g, "⌘").replace(/\bAlt\b/g, "⌥").replace(/\bShift\b/g, "⇧");
+    }
+    return shortcut;
+  }
+
+  // ── Category icon map ─────────────────────────────────────────────────────
+  function getCategoryIcon(category: string) {
+    const c = category.toLowerCase();
+    if (c.includes("file") || c.includes("explorer")) return FolderOpen;
+    if (c.includes("terminal")) return Terminal;
+    if (c.includes("git") || c.includes("source")) return GitBranch;
+    if (c.includes("chat") || c.includes("ai")) return Cpu;
+    if (c.includes("view") || c.includes("layout")) return Layout;
+    if (c.includes("settings") || c.includes("appearance")) return Settings;
+    if (c.includes("agent") || c.includes("mcp")) return Zap;
+    if (c.includes("skill")) return BookOpen;
+    if (c.includes("productivity")) return CheckSquare;
+    return Command;
+  }
+
+  // ── Recent commands ───────────────────────────────────────────────────────
+  const RECENT_KEY = "runyard:recent-commands";
+  const RECENT_MAX = 10;
+
+  function loadRecentIds(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function saveRecentId(id: string) {
+    const ids = loadRecentIds().filter((x) => x !== id);
+    ids.unshift(id);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, RECENT_MAX)));
+  }
+
+  let recentIds = $state<string[]>(loadRecentIds());
 
   /** Unified palette item — commands, tabs, and recent files all share this shape. */
   interface PaletteItem {
@@ -75,6 +133,7 @@
     if (open) {
       selectedIndex = 0;
       query = "";
+      recentIds = loadRecentIds();
       setTimeout(() => inputEl?.focus(), 0);
     }
   });
@@ -93,6 +152,11 @@
   }
 
   function execute(cmd: PaletteItem) {
+    // Track recent command IDs (only for commands from the registry, not tabs/files)
+    if (cmd.id.startsWith("tab:") === false && cmd.id.startsWith("recent:") === false) {
+      saveRecentId(cmd.id);
+      recentIds = loadRecentIds();
+    }
     close();
     setTimeout(() => cmd.handler(), 0);
   }
@@ -129,9 +193,43 @@
     });
   }
 
-  // Group results by category
-  type Group = { category: string; items: PaletteItem[] };
+  // Group results by category; when query is empty, prepend RECENT section
+  type Group = { category: string; items: PaletteItem[]; isRecent?: boolean };
   let grouped = $derived.by((): Group[] => {
+    const q = query.trim();
+
+    // When query is empty, build RECENT + ALL COMMANDS sections
+    if (!q) {
+      const allItems: PaletteItem[] = [
+        ...(commandRegistry.commands as PaletteItem[]),
+        ...tabResults,
+        ...recentResults,
+      ];
+      const allItemsMap = new Map(allItems.map((item) => [item.id, item]));
+
+      const recentItems: PaletteItem[] = recentIds
+        .map((id) => allItemsMap.get(id))
+        .filter((item): item is PaletteItem => item !== undefined);
+
+      const groups: Group[] = [];
+      if (recentItems.length > 0) {
+        groups.push({ category: "RECENT", items: recentItems, isRecent: true });
+      }
+
+      // Build ALL COMMANDS grouped by category
+      const map = new Map<string, PaletteItem[]>();
+      for (const cmd of results) {
+        const list = map.get(cmd.category) ?? [];
+        list.push(cmd);
+        map.set(cmd.category, list);
+      }
+      for (const [category, items] of map.entries()) {
+        groups.push({ category, items });
+      }
+      return groups;
+    }
+
+    // Query non-empty: standard grouping
     const map = new Map<string, PaletteItem[]>();
     for (const cmd of results) {
       const list = map.get(cmd.category) ?? [];
@@ -182,9 +280,15 @@
           <div class="no-results">No results for "{query}"</div>
         {:else}
           {flatIndex = 0}
-          {#each grouped as group}
+          {#each grouped as group, gi}
             <div class="result-group">
-              <div class="group-label">{group.category}</div>
+              <div class="group-label">
+                {#if !group.isRecent}
+                  {@const IconComp = getCategoryIcon(group.category)}
+                  <IconComp size={12} strokeWidth={1.5} class="group-icon" />
+                {/if}
+                {group.isRecent ? "RECENT" : group.category}
+              </div>
               {#each group.items as cmd}
                 {@const idx = flatIndex++}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -202,7 +306,7 @@
                     {/if}
                   </div>
                   {#if cmd.shortcut}
-                    <kbd class="item-shortcut">{cmd.shortcut}</kbd>
+                    <kbd class="item-shortcut">{formatShortcut(cmd.shortcut)}</kbd>
                   {/if}
                 </div>
               {/each}
@@ -334,12 +438,20 @@
   }
 
   .group-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-secondary);
     padding: 8px 16px 3px;
     font-weight: 600;
+  }
+
+  :global(.group-icon) {
+    flex-shrink: 0;
+    opacity: 0.7;
   }
 
   .palette-item {

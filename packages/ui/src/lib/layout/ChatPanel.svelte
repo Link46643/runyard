@@ -9,6 +9,7 @@
   import { acpStore } from "../stores/acpStore.svelte.js";
   import { chatInputStore } from "../stores/chatInputStore.svelte.js";
   import { invoke } from "@tauri-apps/api/core";
+  import { onDestroy } from "svelte";
 
   let { tab }: { tab?: { props: Record<string, unknown> } } = $props();
 
@@ -20,6 +21,26 @@
 
   // Task 3: Mobile sidebar toggle
   let sidebarOpen = $state(false);
+
+  // Retry last message: triggered by ErrorBlock's "chat:retry-last-message" event
+  function handleRetryLastMessage() {
+    const messages = chatStore.messages;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+    const lastUserText = lastUserMsg.content
+      .map((b: any) => ("text" in b ? b.text : "code" in b ? b.code : ""))
+      .join(" ")
+      .trim();
+    chatInputStore.text = lastUserText;
+    chatInputStore.sendMessage(activeConversation?.id ?? "");
+  }
+
+  $effect(() => {
+    window.addEventListener("chat:retry-last-message", handleRetryLastMessage);
+    return () => {
+      window.removeEventListener("chat:retry-last-message", handleRetryLastMessage);
+    };
+  });
 
   // Task 1: Branch new-branch inline input
   let creatingBranch = $state(false);

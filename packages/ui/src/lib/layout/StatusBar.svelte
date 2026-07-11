@@ -3,7 +3,8 @@
   import { invoke } from "@tauri-apps/api/core";
   import { appStatus } from "./appStatusStore.svelte.js";
   import { lspStore } from "./lspStore.svelte.js";
-  import { GitBranch, CircleDot } from "lucide-svelte";
+  import { GitBranch, CircleDot, FolderOpen } from "lucide-svelte";
+  import { workspaceStore } from "../stores/workspaceStore.svelte.js";
 
   import { webSocketClient } from "@runyard/common";
 
@@ -68,6 +69,10 @@
       }}
     >
       {connectionState}
+    </button>
+    <button class="item workspace" onclick={() => workspaceStore.openViaDialog()}>
+      <span class="icon"><FolderOpen size={12} strokeWidth={2} /></span>
+      {workspaceStore.currentName}
     </button>
     <div class="item git">
       <span class="icon"><GitBranch size={12} strokeWidth={2} /></span>
@@ -168,6 +173,21 @@
 
   .connection:hover {
     filter: contrast(1.2);
+  }
+
+  .workspace {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--statusbar-text);
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .workspace:hover {
+    background-color: rgba(128, 128, 128, 0.15);
   }
 
   .git {

@@ -3,6 +3,9 @@
   import { Layout, layoutEngine, platform, commandRegistry, settingsStore, theme, appStatus } from "@runyard/ui";
   import { invoke } from "@tauri-apps/api/core";
   import type { Tab } from "@runyard/common";
+  import { workspaceStore, QuickOpen } from "@runyard/ui";
+
+  let showQuickOpen = $state(false);
 
   onMount(() => {
     platform.current = "desktop";
@@ -20,6 +23,21 @@
     })();
 
     // ── Register all core commands ─────────────────────────────────────────
+    commandRegistry.register({
+      id: "workspace.open",
+      title: "Open Folder...",
+      category: "File",
+      handler: () => workspaceStore.openViaDialog(),
+    });
+
+    commandRegistry.register({
+      id: "file.quickOpen",
+      title: "Go to File",
+      category: "File",
+      shortcut: "Ctrl+P",
+      handler: () => { showQuickOpen = true; },
+    });
+
     commandRegistry.register({
       id: "terminal.new",
       title: "New Terminal",
@@ -48,6 +66,13 @@
       title: "Open AI Chat",
       category: "Chat",
       handler: () => layoutEngine.openChat(),
+    });
+
+    commandRegistry.register({
+      id: "chat.split",
+      title: "Open AI Chat (Split)",
+      category: "Chat",
+      handler: () => layoutEngine.openChatSplit(),
     });
 
     commandRegistry.register({
@@ -340,6 +365,10 @@
         e.preventDefault();
         commandRegistry.execute("tab.reopenLast");
       }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "p") {
+        e.preventDefault();
+        showQuickOpen = true;
+      }
     }
     window.addEventListener("keydown", handleGlobalKey);
     return () => window.removeEventListener("keydown", handleGlobalKey);
@@ -378,3 +407,5 @@
 {:else}
   <Layout node={layoutEngine.layout.root} />
 {/if}
+
+<QuickOpen bind:open={showQuickOpen} />

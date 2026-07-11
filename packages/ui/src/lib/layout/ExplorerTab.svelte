@@ -2,6 +2,7 @@
   import type { Tab } from "@runyard/common";
   import ExplorerPanel from "./ExplorerPanel.svelte";
   import { layoutEngine } from "./layoutStore.svelte.js";
+  import { workspaceStore } from "../stores/workspaceStore.svelte.js";
 
   let { tab } = $props<{ tab: Tab }>();
 
@@ -11,10 +12,10 @@
 </script>
 
 <div class="explorer-tab">
-  <!-- Use a default workspacePath for now, e.g., the root of the project -->
-  <ExplorerPanel 
-    workspacePath={tab.props.workspacePath as string || "../../"} 
-    onOpenFile={handleOpenFile} 
+  <!-- Use workspaceStore.currentPath as the root; fall back to tab prop then "../../" -->
+  <ExplorerPanel
+    workspacePath={workspaceStore.currentPath || (tab.props.workspacePath as string) || "../../"}
+    onOpenFile={handleOpenFile}
   />
 </div>
 

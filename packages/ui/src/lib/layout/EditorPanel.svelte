@@ -12,9 +12,11 @@
   import Modal from "../Modal.svelte";
   import MiniMap from "./MiniMap.svelte";
 
-  let { filePath, onDirtyChange } = $props<{
+  let { filePath, onDirtyChange, inlineDiff = undefined } = $props<{
     filePath: string;
     onDirtyChange: (dirty: boolean) => void;
+    /** Optional inline diff annotation: line numbers for additions and deletions. */
+    inlineDiff?: { additions: number[]; deletions: number[] };
   }>();
 
   let container: HTMLDivElement;
@@ -61,15 +63,20 @@
   // Track the settings snapshot used to build the current editor instance so
   // we can detect when a rebuild is needed.
   let _lastVimMode = false;
+  let _lastEmacsMode = false;
+  let _lastStickyScroll = false;
   let _lastFoldGutter = true;
   let _lastLineWrap = false;
   let _lastFontSize = 14;
   let _lastTabSize = 2;
 
   // Rebuild the editor when editor-config settings that cannot be toggled via
-  // a simple dispatch change (vim mode, fold gutter, line wrap, font/tab size).
+  // a simple dispatch change (vim mode, fold gutter, line wrap, font/tab size,
+  // emacs mode, sticky scroll).
   $effect(() => {
     const vimMode = settingsStore.settings.editor?.vim_mode ?? false;
+    const emacsMode = settingsStore.settings.editor?.emacs_mode ?? false;
+    const stickyScroll = settingsStore.settings.editor?.sticky_scroll ?? false;
     const showFoldGutter = settingsStore.settings.editor?.show_fold_gutter ?? true;
     const lineWrap = settingsStore.settings.editor?.line_wrap ?? false;
     const fontSize = settingsStore.settings.editor?.font_size ?? 14;
@@ -78,12 +85,14 @@
     if (
       editorInstance &&
       (vimMode !== _lastVimMode ||
+        emacsMode !== _lastEmacsMode ||
+        stickyScroll !== _lastStickyScroll ||
         showFoldGutter !== _lastFoldGutter ||
         lineWrap !== _lastLineWrap ||
         fontSize !== _lastFontSize ||
         tabSize !== _lastTabSize)
     ) {
-      rebuildEditor(vimMode, showFoldGutter, lineWrap, fontSize, tabSize);
+      rebuildEditor(vimMode, emacsMode, stickyScroll, showFoldGutter, lineWrap, fontSize, tabSize);
     }
   });
 
@@ -202,6 +211,8 @@
    *  provided settings. Preserves current document content. */
   function rebuildEditor(
     vimMode: boolean,
+    emacsMode: boolean,
+    stickyScroll: boolean,
     showFoldGutter: boolean,
     lineWrap: boolean,
     fontSize: number,
@@ -220,7 +231,10 @@
       tabSize,
       lineWrap,
       vimMode,
+      emacsMode,
+      stickyScroll,
       showFoldGutter,
+      inlineDiff,
       onChange: (content) => {
         currentContent = content;
       },
@@ -238,6 +252,8 @@
     attachScrollListener();
 
     _lastVimMode = vimMode;
+    _lastEmacsMode = emacsMode;
+    _lastStickyScroll = stickyScroll;
     _lastFoldGutter = showFoldGutter;
     _lastLineWrap = lineWrap;
     _lastFontSize = fontSize;
@@ -334,6 +350,8 @@
     }
 
     const initialVimMode = settingsStore.settings.editor?.vim_mode ?? false;
+    const initialEmacsMode = settingsStore.settings.editor?.emacs_mode ?? false;
+    const initialStickyScroll = settingsStore.settings.editor?.sticky_scroll ?? false;
     const initialFoldGutter = settingsStore.settings.editor?.show_fold_gutter ?? true;
     const initialLineWrap = settingsStore.settings.editor?.line_wrap ?? false;
     const initialFontSize = settingsStore.settings.editor?.font_size ?? 14;
@@ -348,7 +366,10 @@
       tabSize: initialTabSize,
       lineWrap: initialLineWrap,
       vimMode: initialVimMode,
+      emacsMode: initialEmacsMode,
+      stickyScroll: initialStickyScroll,
       showFoldGutter: initialFoldGutter,
+      inlineDiff,
       onChange: (content) => {
         currentContent = content;
       },
@@ -365,6 +386,8 @@
     // Record the settings used so the $effect rebuild check starts from a
     // known baseline.
     _lastVimMode = initialVimMode;
+    _lastEmacsMode = initialEmacsMode;
+    _lastStickyScroll = initialStickyScroll;
     _lastFoldGutter = initialFoldGutter;
     _lastLineWrap = initialLineWrap;
     _lastFontSize = initialFontSize;
@@ -615,6 +638,28 @@
     padding: 4px 8px;
     border-radius: 4px;
     border: 1px solid var(--border);
+  }
+
+  /* 1.12.7 — Sticky scroll bar injected by the ViewPlugin */
+  :global(.cm-sticky-scroll) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    height: 24px;
+    line-height: 24px;
+    padding: 0 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    user-select: none;
   }
 
   :global(.cm-editor) {

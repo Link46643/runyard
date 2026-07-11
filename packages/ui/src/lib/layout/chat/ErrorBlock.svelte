@@ -3,6 +3,10 @@
   import { TriangleAlert } from "lucide-svelte";
 
   let { block }: { block: ErrorBlock } = $props();
+
+  function handleRetry() {
+    window.dispatchEvent(new CustomEvent("chat:retry-last-message"));
+  }
 </script>
 
 <div class="error-block">
@@ -10,6 +14,7 @@
   <div class="error-body">
     <div class="error-code">{block.code}</div>
     <div class="error-message">{block.message}</div>
+    <button class="retry-btn" onclick={handleRetry}>Retry</button>
   </div>
 </div>
 
@@ -43,5 +48,21 @@
   .error-message {
     font-size: var(--text-base);
     color: var(--text);
+  }
+  .retry-btn {
+    align-self: flex-start;
+    margin-top: var(--space-2);
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-1);
+    padding: 3px 10px;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+  .retry-btn:hover {
+    color: var(--text);
+    border-color: var(--border-active);
   }
 </style>

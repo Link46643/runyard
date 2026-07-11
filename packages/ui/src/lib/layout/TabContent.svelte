@@ -15,43 +15,51 @@
   import NotesPanel from "./NotesPanel.svelte";
   import TodoPanel from "./TodoPanel.svelte";
   import DiffViewerPanel from "./DiffViewerPanel.svelte";
+  import SandboxPanel from "./SandboxPanel.svelte";
+  import ErrorBoundary from "./ErrorBoundary.svelte";
 
   let { tab } = $props<{ tab: Tab }>();
 </script>
 
-{#if tab.type === "editor"}
-  <EditorTab {tab} />
-{:else if tab.type === "explorer"}
-  <ExplorerTab {tab} />
-{:else if tab.type === "terminal"}
-  <TerminalPanel
-    terminalId={tab.props.terminalId as string}
-    cwd={tab.props.cwd as string | undefined}
-  />
-{:else if tab.type === "git"}
-  <GitPanel
-    workspacePath={tab.props.workspacePath as string ?? "../../"}
-  />
-{:else if tab.type === "chat"}
-  <ChatPanel {tab} />
-{:else if tab.type === "settings"}
-  <SettingsPanel />
-{:else if tab.type === "agent-manager"}
-  <AgentManagerPanel />
-{:else if tab.type === "mcp-manager"}
-  <McpManagerPanel />
-{:else if tab.type === "skills"}
-  <SkillsPanel />
-{:else if tab.type === "agent-tasks"}
-  <AgentTasksPanel />
-{:else if tab.type === "notes"}
-  <NotesPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
-{:else if tab.type === "todo"}
-  <TodoPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
-{:else if tab.type === "diff-viewer"}
-  <DiffViewerPanel />
-{:else if tab.type === "welcome"}
-  <WelcomePanel />
-{:else}
-  <PlaceholderTab {tab} />
-{/if}
+<ErrorBoundary>
+  {#if tab.type === "editor"}
+    <EditorTab {tab} />
+  {:else if tab.type === "explorer"}
+    <ExplorerTab {tab} />
+  {:else if tab.type === "terminal"}
+    <TerminalPanel
+      terminalId={tab.props.terminalId as string}
+      cwd={tab.props.cwd as string | undefined}
+    />
+  {:else if tab.type === "git"}
+    <GitPanel
+      workspacePath={tab.props.workspacePath as string ?? "../../"}
+    />
+  {:else if tab.type === "chat"}
+    <ChatPanel {tab} />
+  {:else if tab.type === "settings"}
+    <SettingsPanel />
+  {:else if tab.type === "agent-manager"}
+    <AgentManagerPanel />
+  {:else if tab.type === "mcp-manager"}
+    <McpManagerPanel />
+  {:else if tab.type === "skills"}
+    <SkillsPanel />
+  {:else if tab.type === "agent-tasks"}
+    <AgentTasksPanel />
+  {:else if tab.type === "notes"}
+    <NotesPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
+  {:else if tab.type === "todo"}
+    <TodoPanel workspacePath={tab.props.workspacePath as string ?? "../../"} />
+  {:else if tab.type === "diff-viewer"}
+    <DiffViewerPanel />
+  {:else if tab.type === "sandbox"}
+    <SandboxPanel />
+  {:else if tab.type === "workspace-switcher"}
+    <PlaceholderTab {tab} />
+  {:else if tab.type === "welcome"}
+    <WelcomePanel />
+  {:else}
+    <PlaceholderTab {tab} />
+  {/if}
+</ErrorBoundary>

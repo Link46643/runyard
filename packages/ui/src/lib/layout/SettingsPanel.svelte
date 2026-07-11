@@ -1,10 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { settingsStore } from "./settingsStore.svelte.js";
+  import { keybindingStore } from "../stores/keybindingStore.svelte.js";
   import type { LspLanguageConfig } from "@runyard/common";
 
-  let activeSection = $state<"editor" | "terminal" | "appearance" | "lsp" | "connections">("editor");
+  let activeSection = $state<"editor" | "terminal" | "appearance" | "lsp" | "connections" | "keybindings">("editor");
   let connections = $state<any[]>([]);
+
+  // Keybinding editing state
+  let editingCmdId = $state<string | null>(null);
+  let editingValue = $state("");
+  let vsCodeImportStatus = $state<string | null>(null);
 
   function loadConnections() {
     try {
@@ -31,12 +37,53 @@
     await settingsStore.save();
   }
 
+  function startEditing(cmdId: string) {
+    editingCmdId = cmdId;
+    editingValue = keybindingStore.getBinding(cmdId) ?? "";
+  }
+
+  function saveEditing() {
+    if (editingCmdId) {
+      if (editingValue.trim()) {
+        keybindingStore.set(editingCmdId, editingValue.trim());
+      } else {
+        keybindingStore.reset(editingCmdId);
+      }
+    }
+    editingCmdId = null;
+    editingValue = "";
+  }
+
+  function cancelEditing() {
+    editingCmdId = null;
+    editingValue = "";
+  }
+
+  function handleVsCodeImport(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const json = ev.target?.result as string;
+        const { imported, skipped } = keybindingStore.importFromVsCode(json);
+        vsCodeImportStatus = `Imported ${imported} binding${imported !== 1 ? "s" : ""}. ${skipped} command${skipped !== 1 ? "s" : ""} not mapped.`;
+      } catch (err) {
+        vsCodeImportStatus = `Import failed: ${err}`;
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-imported
+    (e.target as HTMLInputElement).value = "";
+  }
+
   const sections = [
     { id: "editor", label: "Editor" },
     { id: "terminal", label: "Terminal" },
     { id: "appearance", label: "Appearance" },
     { id: "lsp", label: "Language Servers" },
     { id: "connections", label: "Connections" },
+    { id: "keybindings", label: "Keybindings" },
   ] as const;
 
   const languages = [
@@ -145,6 +192,38 @@
             checked={settingsStore.settings.editor.vim_mode}
             onchange={(e) =>
               set("editor", "vim_mode", (e.target as HTMLInputElement).checked)}
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="field toggle">
+        <div>
+          <label>Emacs Mode</label>
+          <p class="field-desc">Enable minimal Emacs keybindings (Ctrl-a/e/k/f/b/n/p/d)</p>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            checked={settingsStore.settings.editor.emacs_mode ?? false}
+            onchange={(e) =>
+              set("editor", "emacs_mode", (e.target as HTMLInputElement).checked)}
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="field toggle">
+        <div>
+          <label>Sticky Scroll</label>
+          <p class="field-desc">Pin the enclosing scope header at the top of the editor while scrolling</p>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            checked={settingsStore.settings.editor.sticky_scroll ?? false}
+            onchange={(e) =>
+              set("editor", "sticky_scroll", (e.target as HTMLInputElement).checked)}
           />
           <span class="slider"></span>
         </label>
@@ -470,6 +549,56 @@
           </button>
         </div>
       </div>
+    {:else if activeSection === "keybindings"}
+      <h2 class="section-title">Keybindings</h2>
+      <p class="section-desc">
+        Customize keyboard shortcuts. Changes are saved immediately to your browser profile.
+      </p>
+
+      <div class="kb-import-row">
+        <label class="kb-import-btn">
+          Import from VS Code
+          <input
+            type="file"
+            accept=".json"
+            style="display:none"
+            onchange={handleVsCodeImport}
+          />
+        </label>
+        {#if vsCodeImportStatus}
+          <span class="kb-import-status">{vsCodeImportStatus}</span>
+        {/if}
+      </div>
+
+      <div class="kb-table">
+        {#each keybindingStore.allBindings as row}
+          <div class="kb-row">
+            <div class="kb-cmd-id">{row.cmdId}</div>
+            {#if editingCmdId === row.cmdId}
+              <input
+                class="kb-edit-input"
+                type="text"
+                bind:value={editingValue}
+                placeholder="e.g. Ctrl+Shift+P"
+                onkeydown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); saveEditing(); }
+                  if (e.key === "Escape") { e.preventDefault(); cancelEditing(); }
+                }}
+              />
+              <button class="kb-btn-save" onclick={saveEditing}>Save</button>
+              <button class="kb-btn-cancel" onclick={cancelEditing}>Cancel</button>
+            {:else}
+              <span class="kb-binding" class:kb-custom={row.isCustom}>
+                {keybindingStore.format(row.binding) || "—"}
+              </span>
+              <button class="kb-btn-edit" onclick={() => startEditing(row.cmdId)}>Edit</button>
+              {#if row.isCustom}
+                <button class="kb-btn-reset" onclick={() => keybindingStore.reset(row.cmdId)}>Reset</button>
+              {/if}
+            {/if}
+          </div>
+        {/each}
+      </div>
     {/if}
   </div>
 </div>
@@ -743,5 +872,120 @@
   .lsp-entry .field {
     margin-top: 10px;
     margin-bottom: 0;
+  }
+
+  /* ── Keybindings ── */
+  .kb-import-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .kb-import-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .kb-import-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .kb-import-status {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .kb-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .kb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    min-height: 38px;
+  }
+
+  .kb-row:last-child {
+    border-bottom: none;
+  }
+
+  .kb-cmd-id {
+    flex: 1;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    min-width: 0;
+  }
+
+  .kb-binding {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .kb-binding.kb-custom {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .kb-edit-input {
+    flex: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    padding: 3px 6px;
+  }
+
+  .kb-btn-edit,
+  .kb-btn-save,
+  .kb-btn-cancel,
+  .kb-btn-reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: inherit;
+    padding: 2px 7px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .kb-btn-edit:hover,
+  .kb-btn-save:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .kb-btn-cancel:hover,
+  .kb-btn-reset:hover {
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
   }
 </style>

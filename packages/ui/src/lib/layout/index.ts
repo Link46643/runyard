@@ -13,3 +13,8 @@ export { default as AgentTasksPanel } from './AgentTasksPanel.svelte';
 export { default as NotesPanel } from './NotesPanel.svelte';
 export { default as TodoPanel } from './TodoPanel.svelte';
 export { default as DiffViewerPanel } from './DiffViewerPanel.svelte';
+export { default as ErrorBoundary } from './ErrorBoundary.svelte';
+export { default as LoadingPanel } from './LoadingPanel.svelte';
+export { default as SandboxPanel } from './SandboxPanel.svelte';
+export { default as WorkspaceSwitcher } from './WorkspaceSwitcher.svelte';
+export { default as QuickOpen } from './QuickOpen.svelte';

@@ -7,7 +7,11 @@ export * from './stores/chatStore.svelte.js';
 export * from './stores/acpStore.svelte.js';
 export * from './stores/acpMiddlewareStore.svelte.js';
 export * from './stores/chatInputStore.svelte.js';
+export * from './stores/workspaceStore.svelte.js';
 export { default as StatusBar } from './layout/StatusBar.svelte';
 export { default as AppearancePanel } from './layout/AppearancePanel.svelte';
 export { default as CommandPalette } from './layout/CommandPalette.svelte';
+export { default as QuickOpen } from './layout/QuickOpen.svelte';
+export { default as WorkspaceSwitcher } from './layout/WorkspaceSwitcher.svelte';
+export * from './stores/keybindingStore.svelte.js';
 

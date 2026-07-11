@@ -33,23 +33,86 @@
     showUndo = false;
   }
 
+  // Parse the @@ -N,M +P,Q @@ header to extract original start line (1-based).
+  function parseHunkOrigStart(header: string): number {
+    const m = header.match(/@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@/);
+    return m ? parseInt(m[1], 10) : 1;
+  }
+
+  // Apply accepted hunks to original file content using proper line-based patching.
+  // Hunks are applied bottom-to-top so earlier hunk offsets don't affect later ones.
+  function applyHunksToContent(original: string, accepted: ParsedDiffHunk[]): string {
+    const fileLines = original.split("\n");
+
+    // Sort accepted hunks by original start line, descending (bottom-to-top application)
+    const sorted = [...accepted].sort((a, b) => {
+      const aStart = parseHunkOrigStart(a.header ?? "");
+      const bStart = parseHunkOrigStart(b.header ?? "");
+      return bStart - aStart; // descending
+    });
+
+    for (const hunk of sorted) {
+      const origStart = parseHunkOrigStart(hunk.header ?? "");
+      // Count how many original (del + context) lines this hunk covers
+      const origLineCount = hunk.lines.filter((l) => l.type !== "add").length;
+      // Build replacement: context lines + additions (no deletions)
+      const replacement = hunk.lines
+        .filter((l) => l.type !== "del")
+        .map((l) => l.content);
+      // origStart is 1-based; splice is 0-based
+      fileLines.splice(origStart - 1, origLineCount, ...replacement);
+    }
+
+    return fileLines.join("\n");
+  }
+
   async function applyAccepted() {
     const acceptedHunks = hunks.filter((h) => h.status === "accepted");
     if (acceptedHunks.length === 0) return;
+    if (!block.filepath) {
+      console.warn("[DiffBlock] No filepath — cannot write to disk");
+      return;
+    }
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      const current = await invoke<string>("fs_read", { path: block.filepath }).catch(() => "");
-      // Best-effort reconstruction: works cleanly for the common single-hunk
-      // agent-edit case. For files with multiple hunks separated by large
-      // unchanged regions not captured in the diff context, this rebuilds
-      // only the hunk content and will not preserve surrounding untouched
-      // lines - a real limitation, not silently assumed correct.
-      const rebuilt = acceptedHunks
-        .map((h) => h.lines.filter((l) => l.type !== "del").map((l) => l.content).join("\n"))
-        .join("\n");
-      await invoke("fs_write", { path: block.filepath, contents: rebuilt || current });
+      const original = await invoke<string>("fs_read", { path: block.filepath }).catch(() => "");
+      const patched = applyHunksToContent(original, acceptedHunks);
+      await invoke("fs_write", { path: block.filepath, contents: patched });
     } catch (e) {
       console.error("[DiffBlock] Failed to apply accepted hunks", e);
+    }
+  }
+
+  // Write to disk immediately when an individual hunk is accepted
+  async function acceptHunkAndWrite(id: string) {
+    acceptHunk(id);
+    // Gather all accepted hunks after this accept (state update is synchronous in Svelte 5)
+    const nowAccepted = hunks
+      .map((h) => (h.id === id ? { ...h, status: "accepted" as const } : h))
+      .filter((h) => h.status === "accepted");
+    if (!block.filepath || nowAccepted.length === 0) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const original = await invoke<string>("fs_read", { path: block.filepath }).catch(() => "");
+      const patched = applyHunksToContent(original, nowAccepted);
+      await invoke("fs_write", { path: block.filepath, contents: patched });
+    } catch (e) {
+      console.error("[DiffBlock] Failed to write hunk to disk", e);
+    }
+  }
+
+  // Accept all and immediately write
+  async function acceptAllAndWrite() {
+    acceptAll();
+    const allHunks = hunks.map((h) => ({ ...h, status: "accepted" as const }));
+    if (!block.filepath || allHunks.length === 0) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const original = await invoke<string>("fs_read", { path: block.filepath }).catch(() => "");
+      const patched = applyHunksToContent(original, allHunks);
+      await invoke("fs_write", { path: block.filepath, contents: patched });
+    } catch (e) {
+      console.error("[DiffBlock] Failed to write all hunks to disk", e);
     }
   }
 
@@ -63,7 +126,7 @@
     <button class="icon-toggle" onclick={() => (sideBySide = !sideBySide)} title={sideBySide ? "Unified view" : "Side-by-side view"}>
       {#if sideBySide}<Rows2 size={14} strokeWidth={1.5} />{:else}<Columns2 size={14} strokeWidth={1.5} />{/if}
     </button>
-    <button class="ghost-btn" onclick={acceptAll}>Accept all</button>
+    <button class="ghost-btn" onclick={acceptAllAndWrite}>Accept all</button>
     <button class="ghost-btn" onclick={rejectAll}>Reject all</button>
     {#if allDecided}
       <button class="ghost-btn primary" onclick={applyAccepted}>Apply</button>
@@ -99,7 +162,7 @@
       {/if}
       <div class="hunk-actions">
         {#if hunk.status === "pending"}
-          <button class="ghost-btn small" onclick={() => acceptHunk(hunk.id)}>Accept hunk</button>
+          <button class="ghost-btn small" onclick={() => acceptHunkAndWrite(hunk.id)}>Accept hunk</button>
           <button class="ghost-btn small" onclick={() => rejectHunk(hunk.id)}>Reject hunk</button>
         {:else}
           <span class="hunk-status">{hunk.status}</span>

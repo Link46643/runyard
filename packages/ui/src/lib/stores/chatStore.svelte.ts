@@ -1,6 +1,7 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { webSocketClient } from "@runyard/common";
 import type { Conversation, Message, ContentBlock, PinnedContext, Branch } from "@runyard/common";
+import { batchInvoke } from "../utils/ipcBatch.js";
 
 async function invoke<T>(cmd: string, args?: any): Promise<T> {
   if (webSocketClient.status === "connected") {
@@ -9,6 +10,19 @@ async function invoke<T>(cmd: string, args?: any): Promise<T> {
     return tauriInvoke<T>(cmd, args);
   }
 }
+
+// IPC batch wrappers (1.14.1):
+// chat_conversation_list is called on init and can be called again for
+// refresh. Wrapping it prevents duplicate in-flight calls if multiple
+// components trigger a refresh simultaneously within 100ms.
+// Apply batchInvoke to other frequently-called endpoints as needed:
+//   - chat_messages_load (fires on every conversation switch)
+//   - fs_watch events (high frequency during file saves)
+//   - LSP diagnostics (fires on every keystroke)
+const batchedConversationList = batchInvoke<Conversation[]>(
+  () => invoke<Conversation[]>("chat_conversation_list"),
+  100
+);
 
 
 class ChatStore {
@@ -67,7 +81,9 @@ class ChatStore {
 
   async init() {
     try {
-      const list = await invoke<Conversation[]>("chat_conversation_list");
+      // Use batched wrapper so rapid re-initialisation (e.g. hot-reload or
+      // component remounting) collapses into a single IPC round-trip.
+      const list = await batchedConversationList();
       this.conversations = list;
       if (list.length > 0) {
         // Open the first conversation in tabs by default

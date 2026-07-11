@@ -1,6 +1,10 @@
-import { EditorState, type Extension } from "@codemirror/state";
+import { EditorState, StateField, type Extension } from "@codemirror/state";
 import {
   EditorView,
+  ViewPlugin,
+  Decoration,
+  type DecorationSet,
+  type ViewUpdate,
   keymap,
   drawSelection,
   rectangularSelection,
@@ -12,13 +16,158 @@ import { python } from "@codemirror/lang-python";
 import { rust } from "@codemirror/lang-rust";
 import { go } from "@codemirror/lang-go";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { history, historyKeymap, undo, redo } from "@codemirror/commands";
-import { indentWithTab } from "@codemirror/commands";
+import {
+  history,
+  historyKeymap,
+  undo,
+  redo,
+  indentWithTab,
+  cursorLineStart,
+  cursorLineEnd,
+  cursorCharRight,
+  cursorCharLeft,
+  cursorLineDown,
+  cursorLineUp,
+  deleteCharForward,
+  deleteCharBackward,
+} from "@codemirror/commands";
 import { foldGutter, foldKeymap } from "@codemirror/language";
 // @codemirror/search is not yet in the editor package's dependencies.
 // searchKeymap and highlightSelectionMatches are already included via basicSetup.
 // selectNextOccurrence (Cmd+D) is deferred until the package is approved/added.
 // import { searchKeymap, highlightSelectionMatches, selectNextOccurrence } from "@codemirror/search";
+
+// ─── Emacs keybindings (1.12.2) ───────────────────────────────────────────────
+// @replit/codemirror-emacs and @uiw/codemirror-extensions-emacs are not
+// installed. Implement a minimal Emacs keymap using @codemirror/commands which
+// IS installed.
+// TODO 1.12.2: if @replit/codemirror-emacs is added, replace this with:
+//   import { emacs } from "@replit/codemirror-emacs";
+//   if (options.emacsMode) extensions.push(emacs());
+const minimalEmacsKeymap = keymap.of([
+  { key: "Ctrl-a", run: cursorLineStart },
+  { key: "Ctrl-e", run: cursorLineEnd },
+  { key: "Ctrl-k", run: (view) => { /* kill to end of line */ const { from } = view.state.selection.main; const line = view.state.doc.lineAt(from); view.dispatch({ changes: { from, to: line.to } }); return true; } },
+  { key: "Ctrl-f", run: cursorCharRight },
+  { key: "Ctrl-b", run: cursorCharLeft },
+  { key: "Ctrl-n", run: cursorLineDown },
+  { key: "Ctrl-p", run: cursorLineUp },
+  { key: "Ctrl-d", run: deleteCharForward },
+]);
+
+// ─── Sticky scroll extension (1.12.7) ─────────────────────────────────────────
+// Finds the last line before the viewport top that has LESS indentation than
+// the first visible line, which represents the enclosing scope header.
+// Displayed as a 24px bar pinned at the top of the editor using a DOM widget
+// injected into the editor's outer element.
+
+function stickyScrollPlugin(): Extension {
+  return ViewPlugin.fromClass(
+    class {
+      dom: HTMLDivElement;
+      view: EditorView;
+
+      constructor(view: EditorView) {
+        this.view = view;
+        this.dom = document.createElement("div");
+        this.dom.className = "cm-sticky-scroll";
+        this.dom.setAttribute("aria-hidden", "true");
+        view.dom.insertBefore(this.dom, view.dom.firstChild);
+        this._render(view);
+      }
+
+      update(upd: ViewUpdate) {
+        if (upd.geometryChanged || upd.viewportChanged || upd.docChanged) {
+          this._render(upd.view);
+        }
+      }
+
+      _render(view: EditorView) {
+        const { from } = view.viewport;
+        const topLine = view.state.doc.lineAt(from);
+        const topIndent = this._indentOf(topLine.text);
+        let headerText = "";
+        for (let n = topLine.number - 1; n >= 1; n--) {
+          const line = view.state.doc.line(n);
+          const text = line.text.trimEnd();
+          if (text.length === 0) continue;
+          const indent = this._indentOf(text);
+          if (indent < topIndent) {
+            headerText = text.trimStart();
+            break;
+          }
+        }
+        if (headerText) {
+          this.dom.textContent = headerText;
+          this.dom.style.display = "block";
+        } else {
+          this.dom.style.display = "none";
+        }
+      }
+
+      _indentOf(text: string): number {
+        let i = 0;
+        while (i < text.length && (text[i] === " " || text[i] === "\t")) i++;
+        return i;
+      }
+
+      destroy() { this.dom.remove(); }
+    }
+  );
+}
+
+/** Returns the sticky scroll ViewPlugin extension. Only added when enabled. */
+export function stickyScrollExtension(): Extension {
+  return stickyScrollPlugin();
+}
+
+// ─── Inline diff decoration (1.12.10) ─────────────────────────────────────────
+
+function buildDiffDecorations(
+  state: EditorState,
+  additions: number[],
+  deletions: number[]
+): DecorationSet {
+  const decos: ReturnType<typeof Decoration.line>[] = [];
+  const marks: { from: number; value: ReturnType<typeof Decoration.line> }[] = [];
+
+  for (const lineNum of additions) {
+    if (lineNum < 1 || lineNum > state.doc.lines) continue;
+    const line = state.doc.line(lineNum);
+    marks.push({ from: line.from, value: Decoration.line({ class: "cm-diff-add" }) });
+  }
+  for (const lineNum of deletions) {
+    if (lineNum < 1 || lineNum > state.doc.lines) continue;
+    const line = state.doc.line(lineNum);
+    marks.push({ from: line.from, value: Decoration.line({ class: "cm-diff-del" }) });
+  }
+
+  // Decoration.set expects sorted, non-overlapping decorations
+  marks.sort((a, b) => a.from - b.from);
+  return Decoration.set(marks.map(({ from, value }) => value.range(from)));
+}
+
+function inlineDiffField(
+  additions: number[],
+  deletions: number[]
+): Extension {
+  return StateField.define<DecorationSet>({
+    create(state) {
+      return buildDiffDecorations(state, additions, deletions);
+    },
+    update(deco, tr) {
+      if (tr.docChanged) {
+        return buildDiffDecorations(tr.state, additions, deletions);
+      }
+      return deco;
+    },
+    provide(f) {
+      return EditorView.decorations.from(f);
+    },
+  });
+}
+
+// ─── EditorOptions interface ───────────────────────────────────────────────────
 
 export interface EditorOptions {
   parent: HTMLElement;
@@ -39,14 +188,28 @@ export interface EditorOptions {
   lineWrap?: boolean;
   /** Enable Vim keybindings. Requires @replit/codemirror-vim (not currently installed — stub only). */
   vimMode?: boolean;
+  /** Enable minimal Emacs keybindings (Ctrl-a/e/k/f/b/n/p/d). Uses @codemirror/commands. */
+  emacsMode?: boolean;
   /** Show fold gutters and enable fold keyboard shortcuts. Default: true. */
   showFoldGutter?: boolean;
   /** Show a minimap sidebar. Handled by the MiniMap.svelte component, not a CM extension. */
   showMinimap?: boolean;
+  /**
+   * Enable sticky scroll — shows the enclosing scope header at the top of the
+   * viewport while scrolling through a file.
+   */
+  stickyScroll?: boolean;
+  /**
+   * Inline diff decoration: line numbers for added/deleted lines.
+   * Added lines get class `cm-diff-add`, deleted lines get `cm-diff-del`.
+   */
+  inlineDiff?: { additions: number[]; deletions: number[] };
   onChange?: (content: string) => void;
   onSave?: (content: string) => void;
   onSelectionChange?: (line: number, col: number) => void;
 }
+
+// ─── Utilities ─────────────────────────────────────────────────────────────────
 
 /** Return basic document statistics for the breadcrumb strip. */
 export function getDocumentStats(view: EditorView): {
@@ -83,6 +246,8 @@ function resolveLanguageExtension(options: EditorOptions): Extension | null {
   if (isGo) return go();
   return null;
 }
+
+// ─── setupEditor ──────────────────────────────────────────────────────────────
 
 export function setupEditor(options: EditorOptions) {
   const extensions: Extension[] = [
@@ -135,6 +300,13 @@ export function setupEditor(options: EditorOptions) {
     console.warn("[Editor] Vim mode requested but @replit/codemirror-vim is not installed.");
   }
 
+  // 1.12.2 — Emacs keybindings
+  // @replit/codemirror-emacs and @uiw/codemirror-extensions-emacs are NOT installed.
+  // Using a minimal built-in implementation from @codemirror/commands instead.
+  if (options.emacsMode) {
+    extensions.push(minimalEmacsKeymap);
+  }
+
   if (options.readOnly) {
     extensions.push(EditorView.editable.of(false));
   }
@@ -181,8 +353,17 @@ export function setupEditor(options: EditorOptions) {
     );
   }
 
-  // TODO 1.12.7: sticky scroll requires @codemirror/language v7+ stickyTop feature.
-  // Not available in @codemirror/language 6.x.
+  // 1.12.7 — Sticky scroll
+  if (options.stickyScroll) {
+    extensions.push(stickyScrollExtension());
+  }
+
+  // 1.12.10 — Inline diff decorations
+  if (options.inlineDiff) {
+    extensions.push(
+      inlineDiffField(options.inlineDiff.additions, options.inlineDiff.deletions)
+    );
+  }
 
   const state = EditorState.create({
     doc: options.doc,
