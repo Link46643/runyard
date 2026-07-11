@@ -63,19 +63,22 @@ pub fn init_acp_bridge<R: Runtime>(app: &AppHandle<R>) -> AcpBridgeState {
 fn transport_for_agent(agent: &crate::acp_agent_db::DbAcpAgent) -> Result<AgentTransportConfig, String> {
     match agent.transport.as_str() {
         "stdio" => {
-            let mut command = agent
+            // No OS-specific wrapping here on purpose. AcpAgent::from_str
+            // (agent-client-protocol-tokio) parses this string with
+            // shell_words::split - a plain cross-platform argv tokenizer,
+            // not a shell invocation - then spawns it via
+            // tokio::process::Command::new(binary).args(args). Modern Rust's
+            // std::process::Command already resolves PATH (including
+            // PATHEXT, so npm-installed .cmd/.bat shims like opencode.cmd
+            // resolve correctly) and safely executes batch files on Windows
+            // with correct argument escaping - no cmd.exe /c wrapper is
+            // needed, and adding one would double-tokenize the command
+            // string and break on any argument containing spaces or quotes.
+            let command = agent
                 .spawn_command
                 .clone()
                 .or_else(|| agent.executable_path.clone())
                 .ok_or_else(|| format!("agent '{}' has no spawn_command or executable_path configured", agent.name))?;
-            
-            #[cfg(target_os = "windows")]
-            {
-                let trimmed = command.trim();
-                if !trimmed.starts_with("cmd") && !trimmed.starts_with("powershell") && !trimmed.contains(".exe") {
-                    command = format!("cmd.exe /c {trimmed}");
-                }
-            }
             Ok(AgentTransportConfig::stdio(command))
         }
         "http" => {

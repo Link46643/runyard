@@ -76,11 +76,24 @@ pub fn check_path_allowed(
     workspace_root: &str,
     file_path: &str,
 ) -> Result<(), String> {
-    let canonical = std::fs::canonicalize(file_path)
-        .unwrap_or_else(|_| std::path::PathBuf::from(file_path));
+    // Both sides of every starts_with() comparison below must go through the
+    // same canonicalization, or this check silently breaks - especially on
+    // Windows, where a canonical path can carry a `\\?\` long-path prefix,
+    // resolved symlink components, or normalized casing that a raw
+    // PathBuf::from(root) never gets. Comparing a canonicalized file_path
+    // against a non-canonicalized root means every legitimate in-workspace
+    // path can be wrongly denied (or, worse on other platforms, a
+    // similarly-prefixed sibling directory wrongly allowed). Falling back to
+    // the raw path on canonicalize() failure (e.g. the path doesn't exist yet,
+    // for a new-file write) keeps behavior sane without panicking.
+    fn canonicalize_or_raw(path: &str) -> std::path::PathBuf {
+        std::fs::canonicalize(path).unwrap_or_else(|_| std::path::PathBuf::from(path))
+    }
+
+    let canonical = canonicalize_or_raw(file_path);
 
     // Always allow within the session workspace root.
-    let ws = std::path::PathBuf::from(workspace_root);
+    let ws = canonicalize_or_raw(workspace_root);
     if canonical.starts_with(&ws) {
         return Ok(());
     }
@@ -90,7 +103,7 @@ pub fn check_path_allowed(
         for root in sandbox.allowed_roots.split(',') {
             let root = root.trim();
             if !root.is_empty() {
-                let root_path = std::path::PathBuf::from(root);
+                let root_path = canonicalize_or_raw(root);
                 if canonical.starts_with(&root_path) {
                     return Ok(());
                 }
