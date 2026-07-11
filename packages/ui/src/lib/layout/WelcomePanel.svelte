@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { layoutEngine } from "./layoutStore.svelte.js";
+  import { workspaceStore } from "../stores/workspaceStore.svelte.js";
 </script>
 
 <div class="welcome-panel">
@@ -8,12 +10,16 @@
   </div>
   
   <div class="shortcuts">
-    <div class="shortcut">
-      <span class="label">Open File</span>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="shortcut" onclick={() => workspaceStore.openViaDialog()}>
+      <span class="label">Open Folder</span>
       <span class="key">Ctrl + O</span>
     </div>
-    <div class="shortcut">
-      <span class="label">Settings</span>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="shortcut" onclick={() => layoutEngine.openSettings()}>
+      <span class="label">Open Settings</span>
       <span class="key">Ctrl + ,</span>
     </div>
   </div>
@@ -70,6 +76,8 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     transition: border-color 0.2s;
+    cursor: pointer;
+    user-select: none;
   }
   
   .shortcut:hover {
