@@ -438,7 +438,7 @@
   <Modal
     bind:show={showWarningModal}
     title="Warning"
-    message={"Failed to read file correctly. It might be binary or have an invalid encoding.\n\n" +
+    message={"Failed to read file correctly. The file might be binary, have an invalid encoding, or be locked.\n\nError: " +
       warningMessage}
     confirmLabel="Open Anyway"
     onConfirm={() => {
