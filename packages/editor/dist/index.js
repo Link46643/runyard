@@ -5,9 +5,30 @@ import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { rust } from "@codemirror/lang-rust";
 import { go } from "@codemirror/lang-go";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
+import { cpp } from "@codemirror/lang-cpp";
+import { java } from "@codemirror/lang-java";
+import { sql } from "@codemirror/lang-sql";
+import { yaml } from "@codemirror/lang-yaml";
+import { php } from "@codemirror/lang-php";
+import { xml } from "@codemirror/lang-xml";
+import { wast } from "@codemirror/lang-wast";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { ruby } from "@codemirror/legacy-modes/mode/ruby";
+import { csharp, kotlin, scala } from "@codemirror/legacy-modes/mode/clike";
+import { swift } from "@codemirror/legacy-modes/mode/swift";
+import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { sass } from "@codemirror/legacy-modes/mode/sass";
+import { r } from "@codemirror/legacy-modes/mode/r";
+import { toml } from "@codemirror/legacy-modes/mode/toml";
+import { perl } from "@codemirror/legacy-modes/mode/perl";
+import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { history, historyKeymap, undo, redo, indentWithTab, cursorLineStart, cursorLineEnd, cursorCharRight, cursorCharLeft, cursorLineDown, cursorLineUp, deleteCharForward, } from "@codemirror/commands";
-import { foldGutter, foldKeymap } from "@codemirror/language";
+import { foldGutter, foldKeymap, StreamLanguage } from "@codemirror/language";
 // @codemirror/search is not yet in the editor package's dependencies.
 // searchKeymap and highlightSelectionMatches are already included via basicSetup.
 // selectNextOccurrence (Cmd+D) is deferred until the package is approved/added.
@@ -140,21 +161,104 @@ export function getDocumentStats(view) {
 function resolveLanguageExtension(options) {
     const lang = (options.language ?? "").toLowerCase();
     const ext = options.filePath?.split(".").pop()?.toLowerCase();
-    const isJs = lang === "javascript" || lang === "js" || lang === "jsx" || ext === "js" || ext === "jsx" || ext === "mjs" || ext === "cjs";
+    // Filename without extension — used for dotfiles and extensionless files.
+    const filename = options.filePath?.split(/[\\/]/).pop()?.toLowerCase();
+    // ── TypeScript / JavaScript ──────────────────────────────────────────────
     const isTs = lang === "typescript" || lang === "ts" || lang === "tsx" || ext === "ts" || ext === "tsx";
-    const isPy = lang === "python" || lang === "py" || ext === "py";
-    const isRust = lang === "rust" || lang === "rs" || ext === "rs";
-    const isGo = lang === "go" || lang === "golang" || ext === "go";
+    const isJs = lang === "javascript" || lang === "js" || lang === "jsx" || lang === "mjs" ||
+        ext === "js" || ext === "jsx" || ext === "mjs" || ext === "cjs";
     if (isTs)
         return javascript({ typescript: true, jsx: lang === "tsx" || ext === "tsx" });
     if (isJs)
         return javascript({ typescript: false, jsx: lang === "jsx" || ext === "jsx" });
-    if (isPy)
+    // ── Python ───────────────────────────────────────────────────────────────
+    if (lang === "python" || lang === "py" || ext === "py" || ext === "pyw")
         return python();
-    if (isRust)
+    // ── Rust ─────────────────────────────────────────────────────────────────
+    if (lang === "rust" || lang === "rs" || ext === "rs")
         return rust();
-    if (isGo)
+    // ── Go ───────────────────────────────────────────────────────────────────
+    if (lang === "go" || lang === "golang" || ext === "go")
         return go();
+    // ── HTML ─────────────────────────────────────────────────────────────────
+    if (lang === "html" || ext === "html" || ext === "htm")
+        return html();
+    // ── CSS / SCSS / LESS ────────────────────────────────────────────────────
+    if (lang === "css" || ext === "css")
+        return css();
+    if (lang === "scss" || ext === "scss")
+        return css();
+    if (lang === "sass" || ext === "sass")
+        return StreamLanguage.define(sass);
+    if (lang === "less" || ext === "less")
+        return StreamLanguage.define(sass);
+    // ── JSON ─────────────────────────────────────────────────────────────────
+    if (lang === "json" || lang === "jsonc" || ext === "json" || ext === "jsonc" || ext === "jsonl")
+        return json();
+    // ── Markdown ─────────────────────────────────────────────────────────────
+    if (lang === "markdown" || lang === "md" || lang === "mdx" || ext === "md" || ext === "markdown" || ext === "mdx")
+        return markdown();
+    // ── C / C++ ──────────────────────────────────────────────────────────────
+    if (lang === "c" || lang === "cpp" || lang === "c++" || lang === "cxx" || lang === "cc" ||
+        ext === "c" || ext === "cpp" || ext === "cc" || ext === "cxx" ||
+        ext === "h" || ext === "hpp" || ext === "hxx" || ext === "hh")
+        return cpp();
+    // ── Java ─────────────────────────────────────────────────────────────────
+    if (lang === "java" || ext === "java")
+        return java();
+    // ── SQL ──────────────────────────────────────────────────────────────────
+    if (lang === "sql" || ext === "sql")
+        return sql();
+    // ── YAML ─────────────────────────────────────────────────────────────────
+    if (lang === "yaml" || lang === "yml" || ext === "yaml" || ext === "yml")
+        return yaml();
+    // ── PHP ──────────────────────────────────────────────────────────────────
+    if (lang === "php" || ext === "php")
+        return php();
+    // ── XML / SVG / XAML ─────────────────────────────────────────────────────
+    if (lang === "xml" || lang === "svg" || ext === "xml" || ext === "svg" || ext === "xaml" || ext === "xsl" || ext === "xslt")
+        return xml();
+    // ── WebAssembly Text ─────────────────────────────────────────────────────
+    if (lang === "wasm" || lang === "wast" || lang === "wat" || ext === "wat" || ext === "wast")
+        return wast();
+    // ── TOML ─────────────────────────────────────────────────────────────────
+    if (lang === "toml" || ext === "toml")
+        return StreamLanguage.define(toml);
+    // ── Shell / Bash / Zsh / Fish ────────────────────────────────────────────
+    if (lang === "shell" || lang === "bash" || lang === "sh" || lang === "zsh" || lang === "fish" ||
+        ext === "sh" || ext === "bash" || ext === "zsh" || ext === "fish" ||
+        filename === ".bashrc" || filename === ".zshrc" || filename === ".profile" || filename === ".bash_profile") {
+        return StreamLanguage.define(shell);
+    }
+    // ── Ruby ─────────────────────────────────────────────────────────────────
+    if (lang === "ruby" || lang === "rb" || ext === "rb" || ext === "rake" || ext === "gemspec" ||
+        filename === "gemfile" || filename === "rakefile") {
+        return StreamLanguage.define(ruby);
+    }
+    // ── C# ───────────────────────────────────────────────────────────────────
+    if (lang === "csharp" || lang === "c#" || lang === "cs" || ext === "cs")
+        return StreamLanguage.define(csharp);
+    // ── Kotlin ───────────────────────────────────────────────────────────────
+    if (lang === "kotlin" || lang === "kt" || ext === "kt" || ext === "kts")
+        return StreamLanguage.define(kotlin);
+    // ── Scala ────────────────────────────────────────────────────────────────
+    if (lang === "scala" || ext === "scala" || ext === "sc")
+        return StreamLanguage.define(scala);
+    // ── Swift ────────────────────────────────────────────────────────────────
+    if (lang === "swift" || ext === "swift")
+        return StreamLanguage.define(swift);
+    // ── Lua ──────────────────────────────────────────────────────────────────
+    if (lang === "lua" || ext === "lua")
+        return StreamLanguage.define(lua);
+    // ── R ────────────────────────────────────────────────────────────────────
+    if (lang === "r" || ext === "r" || ext === "rmd")
+        return StreamLanguage.define(r);
+    // ── Perl ─────────────────────────────────────────────────────────────────
+    if (lang === "perl" || lang === "pl" || ext === "pl" || ext === "pm")
+        return StreamLanguage.define(perl);
+    // ── Dockerfile ───────────────────────────────────────────────────────────
+    if (lang === "dockerfile" || filename === "dockerfile")
+        return StreamLanguage.define(dockerFile);
     return null;
 }
 // ─── setupEditor ──────────────────────────────────────────────────────────────
