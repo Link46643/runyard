@@ -47,7 +47,6 @@
   });
 
   async function toggle() {
-    explorerStore.select(node.path, node.kind as "file" | "dir");
     if (node.kind === "dir") {
       const nextExpanded = !expanded;
       explorerStore.toggle(node.path, nextExpanded);
@@ -63,7 +62,7 @@
 <div class="tree-node" style="--depth: {depth}">
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="row" class:selected={explorerStore.selectedPath === node.path} onclick={toggle}>
+  <div class="row" onclick={toggle}>
     <span class="icon">
       {#if node.kind === "dir"}
         {#if expanded}
@@ -113,12 +112,7 @@
     background-color: var(--bg-secondary);
     color: var(--text);
   }
-  .row.selected {
-    background-color: rgba(59, 130, 246, 0.15);
-    color: var(--text);
-    border-left: 2px solid var(--accent);
-    padding-left: calc(6px + var(--depth) * 16px);
-  }
+
   .icon {
     margin-right: 8px;
     width: 16px;

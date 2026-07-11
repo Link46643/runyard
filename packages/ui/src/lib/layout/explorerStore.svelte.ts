@@ -1,15 +1,8 @@
 class ExplorerStore {
   expandedPaths = $state<Set<string>>(new Set());
-  selectedPath = $state<string | null>(null);
-  selectedKind = $state<"file" | "dir" | null>(null);
 
   constructor() {
     this.load();
-  }
-
-  select(path: string | null, kind: "file" | "dir" | null = null) {
-    this.selectedPath = path;
-    this.selectedKind = kind;
   }
 
   load() {

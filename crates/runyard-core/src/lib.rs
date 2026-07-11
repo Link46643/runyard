@@ -159,14 +159,7 @@ pub mod commands {
         Ok(())
     }
 
-    #[tauri::command]
-    pub fn fs_create_dir(path: String) -> Result<(), String> {
-        println!("[Core] Creating directory: {}", path);
-        std::fs::create_dir_all(&path).map_err(|e| {
-            eprintln!("[Core] Failed to create directory {}: {}", path, e);
-            e.to_string()
-        })
-    }
+
 
     #[tauri::command]
     pub fn fs_watch<R: Runtime>(app: AppHandle<R>, path: String) -> Result<(), String> {

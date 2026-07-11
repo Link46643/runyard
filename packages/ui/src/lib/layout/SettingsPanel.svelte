@@ -1,8 +1,19 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+import { onMount } from "svelte";
   import { settingsStore } from "./settingsStore.svelte.js";
   import { keybindingStore } from "../stores/keybindingStore.svelte.js";
   import type { LspLanguageConfig } from "@runyard/common";
+  import Modal from "../Modal.svelte";
+
+  let showModal = $state(false);
+  let modalTitle = $state("");
+  let modalMessage = $state("");
+
+  function showMessage(title: string, msg: string) {
+    modalTitle = title;
+    modalMessage = msg;
+    showModal = true;
+  }
 
   let activeSection = $state<"editor" | "terminal" | "appearance" | "lsp" | "connections" | "keybindings">("editor");
   let connections = $state<any[]>([]);
@@ -468,8 +479,8 @@
               const tokenEl = document.getElementById("conn-token") as HTMLInputElement;
               
               if (!nameEl.value || !hostEl.value || !tokenEl.value) {
-                 alert("Please fill in Name, Host, and Token");
-                 return;
+                showMessage("Validation Error", "Please fill in Name, Host, and Token");
+                return;
               }
 
               const newConn = {
@@ -525,7 +536,7 @@
               const bootTokenEl = document.getElementById("bootstrap-token") as HTMLInputElement;
 
               if (!hostEl.value || !userEl.value) {
-                alert("Please fill in SSH Host and Username");
+                showMessage("Validation Error", "Please fill in SSH Host and Username");
                 return;
               }
 
@@ -539,9 +550,9 @@
                   username: userEl.value,
                   token
                 });
-                alert(res);
+                showMessage("SSH Bootstrap", res);
               } catch(e) {
-                alert(`SSH Bootstrap failed: ${e}`);
+                showMessage("SSH Bootstrap Error", `SSH Bootstrap failed: ${e}`);
               }
             }}
           >
@@ -601,6 +612,14 @@
       </div>
     {/if}
   </div>
+
+  <Modal
+    bind:show={showModal}
+    title={modalTitle}
+    message={modalMessage}
+    confirmLabel="Close"
+    onConfirm={() => { showModal = false; }}
+  />
 </div>
 
 <style>
