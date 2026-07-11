@@ -1,5 +1,7 @@
 // @ts-ignore
 import { listen as tauriListen } from "original-tauri-event";
+// @ts-ignore
+export * from "original-tauri-event";
 import { webSocketClient } from "./websocket-client";
 
 export type UnlistenFn = () => void;

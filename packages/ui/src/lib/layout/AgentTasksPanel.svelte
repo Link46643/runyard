@@ -278,6 +278,8 @@
 
   let runningTasks = $derived(tasks.filter((t) => t.status === "running"));
 
+  let svgH = $derived(Math.max(200, activeAgents.length * 60 + 80));
+
   function graphAgentY(index: number, total: number, height: number): number {
     if (total === 0) return height / 2;
     const margin = 40;
@@ -363,11 +365,9 @@
         class="routing-graph"
         width="100%"
         style="min-height: 200px;"
-        viewBox="0 0 600 {Math.max(200, activeAgents.length * 60 + 80)}"
+        viewBox="0 0 600 {svgH}"
         preserveAspectRatio="xMidYMid meet"
       >
-        {@const svgH = Math.max(200, activeAgents.length * 60 + 80)}
-
         <!-- User node -->
         <circle cx="60" cy={svgH / 2} r="24" fill="var(--bg-tertiary)" stroke="var(--border-active)" stroke-width="1.5" />
         <text x="60" y={svgH / 2 + 4} text-anchor="middle" fill="var(--text-secondary)" font-size="11" font-family="var(--font-mono)">user</text>

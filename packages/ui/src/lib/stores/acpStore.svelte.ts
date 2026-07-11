@@ -54,7 +54,7 @@ class AcpStore {
   private setupEventListener(): () => void {
     let unlistenFn: (() => void) | null = null;
 
-    listen<AcpClientEvent>("acp:event", (event) => {
+    listen<AcpClientEvent>("acp:event", async (event) => {
       const payload = event.payload;
       const connId = payload.connection_id;
 

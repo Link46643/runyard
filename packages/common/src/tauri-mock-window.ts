@@ -1,5 +1,7 @@
 // @ts-ignore
 import { getCurrentWindow as tauriGetCurrentWindow } from "original-tauri-window";
+// @ts-ignore
+export * from "original-tauri-window";
 
 export function getCurrentWindow(): any {
   if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
