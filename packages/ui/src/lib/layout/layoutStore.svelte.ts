@@ -401,6 +401,31 @@ class LayoutStore {
     }
   }
 
+  /** Restart a dead terminal tab in-place with a new PTY session. */
+  restartTerminalTab(oldTabId: string, newTabId: string, newCwd: string) {
+    const updateInNode = (node: LayoutNode): boolean => {
+      if (node.type === "leaf") {
+        const idx = node.tabs.findIndex((t) => t.id === oldTabId);
+        if (idx !== -1) {
+          node.tabs[idx].id = newTabId;
+          node.tabs[idx].props = { terminalId: newTabId.split(":")[1], cwd: newCwd };
+          if (node.activeTabId === oldTabId) {
+            node.activeTabId = newTabId;
+          }
+          node.tabs = [...node.tabs]; // Force trigger deep reactivity
+          return true;
+        }
+      } else if (node.type === "split") {
+        for (const child of node.children) {
+          if (updateInNode(child)) return true;
+        }
+      }
+      return false;
+    };
+    updateInNode(this.layout.root);
+    this.save();
+  }
+
   /** Open (or focus) the Git panel. */
   openGit(workspacePath = "../../") {
     const tabId = `git:${workspacePath}`;

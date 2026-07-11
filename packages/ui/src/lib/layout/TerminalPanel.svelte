@@ -31,6 +31,19 @@
   const INSTANCE_CACHE = (window as any).__runyard_terminals ??= new Map<string, any>();
 
   onMount(async () => {
+    // 1. Verify if the PTY process is active on the backend
+    try {
+      const activeSessions = await invoke<TerminalSessionInfo[]>("terminal_list");
+      const isActive = activeSessions.some(s => s.id === terminalId);
+      if (!isActive) {
+        exited = true;
+        isLoading = false;
+        return;
+      }
+    } catch (e) {
+      console.error("[TerminalPanel] Failed to list active terminals", e);
+    }
+
     // Dynamic import keeps xterm out of the initial bundle
     const { Terminal } = await import("@xterm/xterm");
     const { FitAddon } = await import("@xterm/addon-fit");
@@ -151,6 +164,29 @@
     // The PTY itself is closed when the tab is removed from the layout (handled externally).
   });
 
+  async function handleRestart() {
+    isLoading = true;
+    exited = false;
+    exitCode = null;
+
+    const shell = settingsStore.settings.terminal.default_shell || null;
+    try {
+      const info = await invoke<TerminalSessionInfo>("terminal_create", { 
+        cwd: cwd || null, 
+        shell 
+      });
+      layoutEngine.restartTerminalTab(
+        `terminal:${terminalId}`, 
+        `terminal:${info.id}`, 
+        info.cwd
+      );
+    } catch (e) {
+      console.error("[TerminalPanel] Failed to restart terminal", e);
+      isLoading = false;
+      exited = true;
+    }
+  }
+
   /** Called by parent when tab is actually closed (not just switched away). */
   export function destroyTerminal() {
     const inst = INSTANCE_CACHE.get(terminalId);
@@ -174,8 +210,11 @@
   ></div>
 
   {#if exited}
-    <div class="terminal-exit-badge">
-      Terminal exited{exitCode !== null ? ` (code ${exitCode})` : ""}
+    <div class="terminal-exited-overlay">
+      <div class="exited-card">
+        <span class="exited-text">Terminal process terminated{exitCode !== null ? ` (exit code: ${exitCode})` : ""}</span>
+        <button class="restart-btn" onclick={handleRestart}>Restart Session</button>
+      </div>
     </div>
   {/if}
 </div>
@@ -214,18 +253,49 @@
     font-family: "JetBrains Mono", monospace;
   }
 
-  .terminal-exit-badge {
+  .terminal-exited-overlay {
     position: absolute;
-    bottom: 8px;
-    right: 12px;
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 11px;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .exited-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .exited-text {
+    font-size: 13px;
+    color: var(--text-secondary);
     font-family: "JetBrains Mono", monospace;
-    pointer-events: none;
+  }
+
+  .restart-btn {
+    background: var(--accent, #3b82f6);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+
+  .restart-btn:hover {
+    filter: brightness(1.1);
   }
 
   /* xterm.js global overrides */
