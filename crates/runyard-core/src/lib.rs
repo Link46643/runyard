@@ -91,14 +91,58 @@ pub mod commands {
     #[tauri::command]
     pub fn fs_read(path: String) -> Result<String, String> {
         println!("[Core] Reading file: {}", path);
-        match fs::read_to_string(&path) {
+        let bytes = fs::read(&path).map_err(|e| {
+            eprintln!("[Core] Failed to read file bytes {}: {}", path, e);
+            e.to_string()
+        })?;
+
+        // 1. Detect UTF-16 BOMs
+        if bytes.len() >= 2 {
+            if bytes[0] == 0xFF && bytes[1] == 0xFE {
+                // UTF-16LE BOM
+                let u16_chars: Vec<u16> = bytes[2..]
+                    .chunks_exact(2)
+                    .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+                    .collect();
+                if let Ok(content) = String::from_utf16(&u16_chars) {
+                    println!("[Core] Successfully read {} characters (UTF-16LE BOM)", content.len());
+                    return Ok(content);
+                }
+            } else if bytes[0] == 0xFE && bytes[1] == 0xFF {
+                // UTF-16BE BOM
+                let u16_chars: Vec<u16> = bytes[2..]
+                    .chunks_exact(2)
+                    .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
+                    .collect();
+                if let Ok(content) = String::from_utf16(&u16_chars) {
+                    println!("[Core] Successfully read {} characters (UTF-16BE BOM)", content.len());
+                    return Ok(content);
+                }
+            }
+        }
+
+        // 2. Try parsing as standard UTF-8
+        match String::from_utf8(bytes.clone()) {
             Ok(content) => {
-                println!("[Core] Successfully read {} bytes", content.len());
+                println!("[Core] Successfully read {} bytes (UTF-8)", content.len());
                 Ok(content)
-            },
-            Err(e) => {
-                eprintln!("[Core] Failed to read file {}: {}", path, e);
-                Err(e.to_string())
+            }
+            Err(_) => {
+                // 3. Fallback: try decoding as UTF-16LE without BOM (common on Windows)
+                if bytes.len() % 2 == 0 {
+                    let u16_chars: Vec<u16> = bytes
+                        .chunks_exact(2)
+                        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+                        .collect();
+                    if let Ok(content) = String::from_utf16(&u16_chars) {
+                        println!("[Core] Successfully decoded {} characters (UTF-16LE no BOM)", content.len());
+                        return Ok(content);
+                    }
+                }
+                // 4. Final fallback: standard lossy UTF-8 conversion
+                let content = String::from_utf8_lossy(&bytes).into_owned();
+                println!("[Core] Decoded {} bytes lossily (invalid UTF-8)", content.len());
+                Ok(content)
             }
         }
     }
