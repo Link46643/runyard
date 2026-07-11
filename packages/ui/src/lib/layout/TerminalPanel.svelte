@@ -90,13 +90,7 @@
     fitAddon.fit();
     isLoading = false;
 
-    // Update the tab title when the shell reports its current process via OSC sequences
-    // (e.g. zsh/bash with "precmd" hooks emit \e]0;title\a — xterm.js parses these natively)
-    terminal.onTitleChange((title: string) => {
-      if (title && title.trim()) {
-        layoutEngine.setTabTitle(`terminal:${terminalId}`, title.trim());
-      }
-    });
+    // Kept static as "Terminal" per preference (onTitleChange omitted)
 
     // Handle user input → write to PTY
     terminal.onData((data: string) => {
