@@ -28,7 +28,14 @@ class WorkspaceStore {
   isLoading = $state(false);
 
   constructor() {
-    this.loadRecent();
+    this.init();
+  }
+
+  async init() {
+    await this.loadRecent();
+    if (this.recentWorkspaces.length > 0) {
+      this.currentPath = this.recentWorkspaces[0].path;
+    }
   }
 
   async open(path: string) {
