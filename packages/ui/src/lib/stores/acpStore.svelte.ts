@@ -37,6 +37,10 @@ class AcpStore {
   selectedAgentId = $state<string | null>(null);
   expandedConnectionId = $state<string | null>(null);
 
+  // Track which DB agent row ID owns each live connection_id so that
+  // status_changed / disconnected events can persist back to the DB.
+  private _connectionToAgentRow = new Map<string, string>();
+
   constructor() {
     // $effect.root creates an independent reactive root that is NOT tied to a
     // component lifecycle - correct for stores instantiated at module scope.
@@ -57,6 +61,13 @@ class AcpStore {
       switch (payload.type) {
         case "connected": {
           this.connections = { ...this.connections, [connId]: "ready" };
+          // Sync DB status and refresh the agents list so UI reflects live state.
+          const agentRowOnConnect = this._connectionToAgentRow.get(connId);
+          if (agentRowOnConnect) {
+            invoke("acp_agent_set_status", { id: agentRowOnConnect, status: "connected", last_error: null })
+              .catch(() => {});
+          }
+          this.loadAgents().catch(() => {});
           break;
         }
         case "disconnected": {
@@ -66,10 +77,29 @@ class AcpStore {
           this.connections = restConns;
           this.sessions = restSess;
           this.logs = restLogs;
+          // Sync DB status back to disconnected and refresh agents list.
+          const agentRowOnDisconnect = this._connectionToAgentRow.get(connId);
+          if (agentRowOnDisconnect) {
+            invoke("acp_agent_set_status", { id: agentRowOnDisconnect, status: "disconnected", last_error: null })
+              .catch(() => {});
+            this._connectionToAgentRow.delete(connId);
+          }
+          this.loadAgents().catch(() => {});
           break;
         }
         case "status_changed": {
           this.connections = { ...this.connections, [connId]: payload.status };
+          // Keep DB in sync for the status bar / agent panel badge.
+          const agentRowOnStatus = this._connectionToAgentRow.get(connId);
+          if (agentRowOnStatus) {
+            invoke("acp_agent_set_status", { id: agentRowOnStatus, status: payload.status, last_error: null })
+              .catch(() => {});
+            // Only reload agents on meaningful status transitions to avoid
+            // flooding SQLite with reads on every chunk.
+            if (payload.status === "ready" || payload.status === "error") {
+              this.loadAgents().catch(() => {});
+            }
+          }
           break;
         }
         case "session_started": {
@@ -272,10 +302,16 @@ class AcpStore {
     try {
       const connectionId = await invoke<string>("acp_connect", { agentRowId });
       this.connections = { ...this.connections, [connectionId]: "initializing" };
+      // Record the mapping so event handlers can sync DB status.
+      this._connectionToAgentRow.set(connectionId, agentRowId);
+      // Reload agents so the panel immediately shows the updated DB status.
+      await this.loadAgents();
       return connectionId;
     } catch (e) {
       this.error = String(e);
       console.error("[AcpStore] acp_connect failed", e);
+      // Ensure DB reflects the failure.
+      await this.loadAgents();
       throw e;
     }
   }
@@ -286,6 +322,8 @@ class AcpStore {
       await invoke("acp_disconnect", { connectionId });
       const { [connectionId]: _conn, ...rest } = this.connections;
       this.connections = rest;
+      this._connectionToAgentRow.delete(connectionId);
+      await this.loadAgents();
     } catch (e) {
       this.error = String(e);
       console.error("[AcpStore] acp_disconnect failed", e);
