@@ -116,7 +116,7 @@ pub fn todo_list(workspace_path: String) -> Result<Vec<DbTodo>, String> {
     let mut stmt = conn
         .prepare("SELECT id,workspace_path,text,is_done,sort_order,created_at,updated_at FROM todos WHERE workspace_path=?1 ORDER BY sort_order ASC, created_at ASC")
         .map_err(|e| e.to_string())?;
-    Ok(stmt.query_map(params![workspace_path], |row| {
+    let list: Vec<DbTodo> = stmt.query_map(params![workspace_path], |row| {
         Ok(DbTodo {
             id: row.get(0)?,
             workspace_path: row.get(1)?,
@@ -126,7 +126,8 @@ pub fn todo_list(workspace_path: String) -> Result<Vec<DbTodo>, String> {
             created_at: row.get(5)?,
             updated_at: row.get(6)?,
         })
-    }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect())
+    }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+    Ok(list)
 }
 
 #[tauri::command]

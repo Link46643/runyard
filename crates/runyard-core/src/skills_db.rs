@@ -88,9 +88,11 @@ pub fn skill_list(scope: Option<String>) -> Result<Vec<DbSkill>, String> {
     if use_param {
         // Re-do with param
         let scope_val = scope.unwrap_or_default();
-        return Ok(stmt.query_map(params![scope_val], row_to_skill).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect());
+        let rows: Vec<DbSkill> = stmt.query_map(params![scope_val], row_to_skill).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+        return Ok(rows);
     }
-    Ok(stmt.query_map([], row_to_skill).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect())
+    let rows: Vec<DbSkill> = stmt.query_map([], row_to_skill).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+    Ok(rows)
 }
 
 #[tauri::command]

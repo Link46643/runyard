@@ -86,11 +86,13 @@ pub fn agent_task_list(status: Option<String>) -> Result<Vec<DbAgentTask>, Strin
     let rows = match status {
         Some(s) => {
             let mut stmt = conn.prepare(&format!("SELECT {SELECT_COLS} FROM agent_tasks WHERE status=?1 ORDER BY created_at DESC")).map_err(|e| e.to_string())?;
-            stmt.query_map(params![s], row_to_task).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect()
+            let list: Vec<DbAgentTask> = stmt.query_map(params![s], row_to_task).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+            list
         }
         None => {
             let mut stmt = conn.prepare(&format!("SELECT {SELECT_COLS} FROM agent_tasks ORDER BY created_at DESC LIMIT 500")).map_err(|e| e.to_string())?;
-            stmt.query_map([], row_to_task).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect()
+            let list: Vec<DbAgentTask> = stmt.query_map([], row_to_task).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+            list
         }
     };
     Ok(rows)

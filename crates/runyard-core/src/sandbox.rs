@@ -8,7 +8,6 @@
 
 use rusqlite::{params, Connection, Result as SqlResult};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use uuid::Uuid;
 
 use crate::chat_db::get_db_path;
@@ -204,22 +203,24 @@ pub fn sandbox_get_audit_log(
                 "SELECT id, agent_id, connection_id, session_id, tool, args_json, outcome, denied_reason, created_at
                  FROM agent_audit_log WHERE agent_id = ?1 ORDER BY created_at DESC LIMIT ?2"
             ).map_err(|e| e.to_string())?;
-            stmt.query_map(params![aid, lim], |row| Ok(AuditLogEntry {
+            let list: Vec<AuditLogEntry> = stmt.query_map(params![aid, lim], |row| Ok(AuditLogEntry {
                 id: row.get(0)?, agent_id: row.get(1)?, connection_id: row.get(2)?,
                 session_id: row.get(3)?, tool: row.get(4)?, args_json: row.get(5)?,
                 outcome: row.get(6)?, denied_reason: row.get(7)?, created_at: row.get(8)?,
-            })).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect()
+            })).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+            list
         }
         None => {
             let mut stmt = conn.prepare(
                 "SELECT id, agent_id, connection_id, session_id, tool, args_json, outcome, denied_reason, created_at
                  FROM agent_audit_log ORDER BY created_at DESC LIMIT ?1"
             ).map_err(|e| e.to_string())?;
-            stmt.query_map(params![lim], |row| Ok(AuditLogEntry {
+            let list: Vec<AuditLogEntry> = stmt.query_map(params![lim], |row| Ok(AuditLogEntry {
                 id: row.get(0)?, agent_id: row.get(1)?, connection_id: row.get(2)?,
                 session_id: row.get(3)?, tool: row.get(4)?, args_json: row.get(5)?,
                 outcome: row.get(6)?, denied_reason: row.get(7)?, created_at: row.get(8)?,
-            })).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect()
+            })).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+            list
         }
     };
     Ok(rows)

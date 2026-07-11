@@ -93,7 +93,7 @@ fn fetch_server(conn: &Connection, id: &str) -> Result<DbMcpServer, String> {
 #[tauri::command]
 pub fn mcp_server_list(project_id: Option<String>) -> Result<Vec<DbMcpServer>, String> {
     let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
-    let (query, rows_result) = match project_id {
+    let (query, mut rows_result) = match project_id {
         Some(pid) => {
             let q = format!("SELECT {SELECT_COLS} FROM mcp_servers WHERE is_global = 1 OR project_id = ?1 ORDER BY name ASC");
             let mut stmt = conn.prepare(&q).map_err(|e| e.to_string())?;
