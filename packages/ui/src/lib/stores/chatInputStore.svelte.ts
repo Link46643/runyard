@@ -162,6 +162,16 @@ class ChatInputStore {
         try {
           const sessionId = await acpStore.newSession(connectionId, ".");
           this.activeSessionId = sessionId;
+          
+          // Set the conversation's model on the ACP session immediately
+          const activeConv = chatStore.conversations.find((c) => c.id === conversationId);
+          if (activeConv && activeConv.model && activeConv.model !== "unassigned") {
+            try {
+              await acpStore.setConfigOption(connectionId, sessionId, "model", activeConv.model);
+            } catch (cfgErr) {
+              console.warn("[ChatInputStore] Failed to set initial model on ACP session", cfgErr);
+            }
+          }
         } catch (e) {
           console.error("[ChatInputStore] Failed to create ACP session", e);
           await this._insertUserMessageStub(conversationId, trimmedText);

@@ -162,6 +162,51 @@
   );
   const hasActiveAgent = $derived(activeAgent !== null && activeAgent !== undefined);
 
+  const availableModels = $derived.by(() => {
+    if (!activeAgent) return ["claude-3-5-sonnet-latest", "gemini-2.5-pro", "gpt-4o", "deepseek-reasoner"];
+    
+    const agentId = activeAgent.agent_id.toLowerCase();
+    if (agentId.includes("claude")) {
+      return [
+        "claude-3-5-sonnet-latest",
+        "claude-3-5-haiku-latest",
+        "claude-3-opus-latest"
+      ];
+    } else if (agentId.includes("gemini")) {
+      return [
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-1.5-pro"
+      ];
+    } else if (agentId.includes("opencode")) {
+      return [
+        "opencode-32b",
+        "opencode-7b",
+        "deepseek-coder-33b",
+        "gpt-4o"
+      ];
+    } else if (agentId.includes("goose")) {
+      return [
+        "gpt-4o",
+        "claude-3-5-sonnet-latest",
+        "gemini-2.5-pro"
+      ];
+    } else if (agentId.includes("codex")) {
+      return [
+        "gpt-4o",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo"
+      ];
+    }
+    
+    return [
+      "claude-3-5-sonnet-latest",
+      "gemini-2.5-pro",
+      "gpt-4o",
+      "deepseek-reasoner"
+    ];
+  });
+
   // Rough, clearly-labeled estimate (~4 chars/token) - there is no real
   // tokenizer wired up yet (that lands with context assembly in section 1.5),
   // so this is deliberately presented as an approximation, not an exact count.
@@ -193,7 +238,21 @@
 
   async function saveModel() {
     if (activeConversation && modelDraft.trim()) {
-      await chatStore.updateConversation(activeConversation.id, { model: modelDraft.trim() });
+      const modelVal = modelDraft.trim();
+      await chatStore.updateConversation(activeConversation.id, { model: modelVal });
+      
+      if (chatInputStore.activeConnectionId && chatInputStore.activeSessionId) {
+        try {
+          await acpStore.setConfigOption(
+            chatInputStore.activeConnectionId,
+            chatInputStore.activeSessionId,
+            "model",
+            modelVal
+          );
+        } catch (e) {
+          console.warn("[ChatPanel] Failed to set model option live on active session", e);
+        }
+      }
     }
     editingModel = false;
   }
@@ -267,12 +326,19 @@
 
       {#if activeConversation}
         {#if editingModel}
-          <input
-            class="model-input"
+          <select
+            class="model-select"
             bind:value={modelDraft}
+            onchange={saveModel}
             onblur={saveModel}
-            onkeydown={(e) => e.key === "Enter" && saveModel()}
-          />
+          >
+            {#each availableModels as modelOption}
+              <option value={modelOption}>{modelOption}</option>
+            {/each}
+            {#if !availableModels.includes(modelDraft)}
+              <option value={modelDraft}>{modelDraft}</option>
+            {/if}
+          </select>
         {:else}
           <button class="model-badge" onclick={startEditModel} title="Click to change model">{activeConversation.model}</button>
         {/if}
@@ -419,7 +485,7 @@
   .model-badge:hover {
     color: var(--text);
   }
-  .model-input {
+  .model-select {
     font-size: var(--text-xs);
     font-family: var(--font-mono);
     background: var(--bg-tertiary);
@@ -427,7 +493,8 @@
     border-radius: var(--radius-1);
     padding: 1px 6px;
     color: var(--text);
-    width: 120px;
+    cursor: pointer;
+    outline: none;
   }
   .branch-menu-wrapper {
     position: relative;

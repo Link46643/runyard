@@ -441,6 +441,16 @@ class AcpStore {
     }
   }
 
+  async setConfigOption(connectionId: string, sessionId: string, key: string, value: unknown) {
+    try {
+      await invoke("acp_set_config_option", { connectionId, sessionId, key, value });
+    } catch (e) {
+      this.error = String(e);
+      console.error("[AcpStore] acp_set_config_option failed", e);
+      throw e;
+    }
+  }
+
   async logout(connectionId: string) {
     try {
       await invoke("acp_logout", { connectionId });
