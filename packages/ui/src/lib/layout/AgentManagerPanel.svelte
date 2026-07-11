@@ -349,6 +349,28 @@
     }
   }
 
+  function addRegistryAgent(r: AcpRegistryAgent) {
+    addTab = "manual";
+    formName = r.name;
+    formAgentId = r.id;
+    formTransport = "stdio";
+    if (r.id === "claude-acp" || r.id === "claude-code") {
+      formSpawnCommand = "npx -y @anthropic-ai/claude-code@latest --acp";
+      formExecutablePath = "";
+    } else if (r.id === "goose") {
+      formSpawnCommand = "goose session --acp";
+      formExecutablePath = "";
+    } else if (r.id === "opencode") {
+      formSpawnCommand = "opencode-acp";
+      formExecutablePath = "";
+    } else {
+      formSpawnCommand = "";
+      formExecutablePath = "";
+    }
+    formRemoteUrl = "";
+    formEnvVars = [];
+  }
+
   // ── Registry tab ──────────────────────────────────────────────────────────
   async function runFetchRegistry() {
     registryLoading = true;
@@ -810,15 +832,20 @@
                     <span class="badge">{r.version}</span>
                   </div>
                   <span class="registry-desc">{r.description}</span>
-                  {#if r.repository}
-                    <a class="registry-link" href={r.repository} target="_blank" rel="noopener noreferrer">
-                      Repository
-                    </a>
-                  {/if}
-                  {#if r.authors && r.authors.length > 0}
-                    <span class="registry-authors">{r.authors.join(", ")}</span>
-                  {/if}
+                  <div class="registry-meta-line">
+                    {#if r.repository}
+                      <a class="registry-link" href={r.repository} target="_blank" rel="noopener noreferrer">
+                        Repository
+                      </a>
+                    {/if}
+                    {#if r.authors && r.authors.length > 0}
+                      <span class="registry-authors">by {r.authors.join(", ")}</span>
+                    {/if}
+                  </div>
                 </div>
+                <button class="btn-primary btn-sm" onclick={() => addRegistryAgent(r)}>
+                  Use
+                </button>
               </div>
             {/each}
           {/if}
@@ -1475,6 +1502,10 @@
 
   /* Registry agents */
   .registry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     padding: 10px 0;
     border-bottom: 1px solid var(--border-secondary);
   }
@@ -1483,6 +1514,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
+    min-width: 0;
   }
 
   .registry-name-line {
@@ -1500,6 +1533,12 @@
   .registry-desc {
     font-size: 11px;
     color: var(--text-secondary);
+  }
+
+  .registry-meta-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .registry-link {

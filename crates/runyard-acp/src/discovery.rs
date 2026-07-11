@@ -59,6 +59,12 @@ pub const KNOWN_AGENTS: &[KnownAgent] = &[
         executable_names: &["goose"],
         config_dir_name: Some("goose"),
     },
+    KnownAgent {
+        agent_id: "opencode",
+        display_name: "OpenCode",
+        executable_names: &["opencode", "opencode-acp"],
+        config_dir_name: Some("opencode"),
+    },
 ];
 
 /// An agent found on the local machine, ready to hand to the UI's "add
