@@ -91,7 +91,10 @@ class LayoutStore {
     };
 
     const tab = findTab(this.layout.root);
-    if (tab && tab.dirty && !force) {
+    if (!tab || tab.type === "explorer") {
+        return false;
+    }
+    if (tab.dirty && !force) {
         return false;
     }
 

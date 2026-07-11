@@ -128,11 +128,13 @@
     >
       <span class="title">{tab.title}</span>
       {#if tab.dirty}<span class="dirty-dot"></span>{/if}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="close-btn" onpointerdown={(e) => { e.stopPropagation(); handleClose(tab.id); }}>
-        <X size={14} strokeWidth={2} />
-      </div>
+      {#if tab.type !== "explorer"}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="close-btn" onpointerdown={(e) => { e.stopPropagation(); handleClose(tab.id); }}>
+          <X size={14} strokeWidth={2} />
+        </div>
+      {/if}
     </div>
   {/each}
 </div>
