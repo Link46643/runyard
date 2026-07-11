@@ -80,6 +80,7 @@
   let registryLoading = $state(false);
   let discoverError = $state<string | null>(null);
   let registryError = $state<string | null>(null);
+  let showGuide = $state(false);
 
   // Log scroll refs: connectionId -> element
   let logScrollEls = $state<Record<string, HTMLElement>>({});
@@ -854,6 +855,57 @@
           {/if}
         </div>
       {/if}
+
+      {#if dialogMode === "add"}
+        <div class="acp-guide-section">
+          <button type="button" class="guide-toggle" onclick={() => showGuide = !showGuide}>
+            <span>❓ ACP Agents Setup & Installation Guide</span>
+            <span>{showGuide ? "▲" : "▼"}</span>
+          </button>
+          
+          {#if showGuide}
+            <div class="guide-content">
+              <p class="guide-intro">
+                ACP (Agent Client Protocol) allows Runyard to talk directly to your local coding agents over stdio (standard input/output). For them to connect successfully, you must install their adapters globally on your machine:
+              </p>
+              
+              <div class="guide-list">
+                <div class="guide-item">
+                  <span class="agent-title">🤖 OpenCode</span>
+                  <p class="agent-desc">First install the OpenCode engine and the ACP adapter globally:</p>
+                  <pre class="code-block">npm install -g opencode-ai opencode-acp</pre>
+                  <p class="agent-tip">Spawn command suggestion: <code>opencode acp</code></p>
+                </div>
+
+                <div class="guide-item">
+                  <span class="agent-title">🦉 Claude Code</span>
+                  <p class="agent-desc">Install Anthropic's official Claude Code CLI tool globally:</p>
+                  <pre class="code-block">npm install -g @anthropic-ai/claude-code</pre>
+                  <p class="agent-tip">Spawn command suggestion: <code>claude --acp</code> or <code>npx -y @anthropic-ai/claude-code@latest --acp</code></p>
+                </div>
+
+                <div class="guide-item">
+                  <span class="agent-title">🦢 Goose</span>
+                  <p class="agent-desc">Install Block's Goose agent via your package manager or installer:</p>
+                  <pre class="code-block"># macOS/Linux:<br/>brew install goose</pre>
+                  <p class="agent-tip">Spawn command suggestion: <code>goose session --acp</code></p>
+                </div>
+
+                <div class="guide-item">
+                  <span class="agent-title">♊ Gemini CLI</span>
+                  <p class="agent-desc">Install the Gemini CLI tool globally:</p>
+                  <pre class="code-block">npm install -g gemini-cli</pre>
+                  <p class="agent-tip">Spawn command suggestion: <code>gemini acp</code></p>
+                </div>
+              </div>
+
+              <div class="guide-note">
+                <strong>💡 Windows Users:</strong> Runyard automatically executes npm-installed global commands (like <code>opencode</code> or <code>claude</code>) through a shell wrapper (<code>cmd.exe /c</code>) under the hood to ensure correct startup.
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1557,5 +1609,111 @@
   .registry-authors {
     font-size: 11px;
     color: var(--text-tertiary);
+  }
+
+  /* ACP Setup Guide */
+  .acp-guide-section {
+    margin-top: 16px;
+    border-top: 1px solid var(--border-secondary);
+    padding-top: 12px;
+  }
+
+  .guide-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .guide-toggle:hover {
+    background: var(--border-secondary);
+    color: var(--text);
+  }
+
+  .guide-content {
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .guide-intro {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .guide-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .guide-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .agent-title {
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .agent-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .code-block {
+    background: #000;
+    color: #a7f3d0;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin: 4px 0;
+    overflow-x: auto;
+    border: 1px solid #10b98133;
+  }
+
+  .agent-tip {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin: 0;
+  }
+
+  .agent-tip code {
+    font-family: var(--font-mono, monospace);
+    color: var(--text-secondary);
+    background: var(--border-secondary);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .guide-note {
+    font-size: 10px;
+    color: var(--text-secondary);
+    border-left: 2px solid var(--accent);
+    padding-left: 8px;
+    line-height: 1.4;
   }
 </style>
