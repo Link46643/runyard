@@ -40,6 +40,12 @@ pub fn init_acp_bridge<R: Runtime>(app: &AppHandle<R>) -> AcpBridgeState {
     let (event_tx, mut event_rx) = mpsc::unbounded_channel::<AcpEvent>();
     let pool = Arc::new(AcpConnectionPool::new(MAX_CONCURRENT_CONNECTIONS, event_tx));
 
+    // On every startup, any agent that was still marked "connected", "connecting",
+    // or "processing" in the DB is stale — the previous session either crashed or
+    // was killed without clean shutdown. Reset them to "disconnected" so the UI
+    // badge doesn't show a phantom green dot.
+    reset_stale_agent_statuses();
+
     let bridge: Arc<dyn EventBridge> = Arc::new(app.clone());
     tauri::async_runtime::spawn(async move {
         while let Some(event) = event_rx.recv().await {
@@ -58,6 +64,28 @@ pub fn init_acp_bridge<R: Runtime>(app: &AppHandle<R>) -> AcpBridgeState {
     });
 
     AcpBridgeState(pool)
+}
+
+/// Resets every agent whose DB status is "connected", "connecting", or
+/// "processing" to "disconnected". Called on startup to clear stale state
+/// from a previous session that ended without clean shutdown.
+fn reset_stale_agent_statuses() {
+    use crate::acp_agent_db::acp_agent_list;
+    if let Ok(agents) = acp_agent_list() {
+        for agent in agents {
+            let stale = matches!(
+                agent.status.as_str(),
+                "connected" | "connecting" | "processing"
+            );
+            if stale {
+                let _ = acp_agent_set_status(
+                    agent.id.to_string(),
+                    "disconnected".to_string(),
+                    None,
+                );
+            }
+        }
+    }
 }
 
 fn transport_for_agent(agent: &crate::acp_agent_db::DbAcpAgent) -> Result<AgentTransportConfig, String> {

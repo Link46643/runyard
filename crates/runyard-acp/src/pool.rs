@@ -54,6 +54,15 @@ impl AcpConnectionPool {
         self.connections.read().await.keys().cloned().collect()
     }
 
+    /// Disconnect every active connection. Called on app shutdown so agent
+    /// processes get a clean exit notification rather than an abrupt pipe close.
+    pub async fn disconnect_all(&self) {
+        let ids: Vec<String> = self.active_connection_ids().await;
+        for id in ids {
+            let _ = self.disconnect(&id).await;
+        }
+    }
+
     pub async fn with_client<F, R>(&self, connection_id: &str, f: F) -> AcpResult<R>
     where
         F: for<'a> FnOnce(&'a RunyardAcpClient) -> std::pin::Pin<Box<dyn std::future::Future<Output = AcpResult<R>> + Send + 'a>>,

@@ -22,6 +22,22 @@ pub fn run() {
             app.manage(runyard_core::acp_bridge::init_acp_bridge(app.handle()));
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                // Window is being destroyed (covers both normal close and dev-server
+                // HMR reload). Grab the pool and fire disconnect_all so every connected
+                // agent process receives a clean shutdown signal rather than a sudden
+                // stdin-pipe close. This is intentionally best-effort (we don't block
+                // the close waiting for the futures) — if the pool lock is busy, we
+                // just let the OS clean up.
+                let app = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(state) = app.try_state::<runyard_core::acp_bridge::AcpBridgeState>() {
+                        state.0.disconnect_all().await;
+                    }
+                });
+            }
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())

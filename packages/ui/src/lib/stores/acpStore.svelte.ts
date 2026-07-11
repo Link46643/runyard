@@ -49,6 +49,25 @@ class AcpStore {
       this.setupEventListener();
     });
     this.loadAgents();
+
+    // Belt-and-suspenders: also disconnect all connections when the webview
+    // navigates away (HMR reload during dev, or tab/window close). The Rust
+    // side handles the Destroyed window event too, but doing it from the
+    // frontend first gives agents a chance to receive a clean ACP logout
+    // before their stdin pipe disappears.
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", () => {
+        this.disconnectAll();
+      });
+    }
+  }
+
+  /** Disconnect every active ACP connection. Called on app/window close. */
+  disconnectAll(): void {
+    const ids = Object.keys(this.connections);
+    for (const id of ids) {
+      invoke("acp_disconnect", { connectionId: id }).catch(() => {});
+    }
   }
 
   // ── Private: event listener ─────────────────────────────────────────────────
