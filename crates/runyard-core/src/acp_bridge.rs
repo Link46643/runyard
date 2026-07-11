@@ -63,11 +63,19 @@ pub fn init_acp_bridge<R: Runtime>(app: &AppHandle<R>) -> AcpBridgeState {
 fn transport_for_agent(agent: &crate::acp_agent_db::DbAcpAgent) -> Result<AgentTransportConfig, String> {
     match agent.transport.as_str() {
         "stdio" => {
-            let command = agent
+            let mut command = agent
                 .spawn_command
                 .clone()
                 .or_else(|| agent.executable_path.clone())
                 .ok_or_else(|| format!("agent '{}' has no spawn_command or executable_path configured", agent.name))?;
+            
+            #[cfg(target_os = "windows")]
+            {
+                let trimmed = command.trim();
+                if !trimmed.starts_with("cmd") && !trimmed.starts_with("powershell") && !trimmed.contains(".exe") {
+                    command = format!("cmd.exe /c {trimmed}");
+                }
+            }
             Ok(AgentTransportConfig::stdio(command))
         }
         "http" => {

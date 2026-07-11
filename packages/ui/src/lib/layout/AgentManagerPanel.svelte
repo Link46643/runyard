@@ -361,7 +361,10 @@
       formSpawnCommand = "goose session --acp";
       formExecutablePath = "";
     } else if (r.id === "opencode") {
-      formSpawnCommand = "opencode-acp";
+      formSpawnCommand = "opencode acp";
+      formExecutablePath = "";
+    } else if (r.id === "gemini-cli" || r.id === "gemini") {
+      formSpawnCommand = "gemini acp";
       formExecutablePath = "";
     } else {
       formSpawnCommand = "";
