@@ -1,3 +1,4 @@
+use tauri::Manager;
 use runyard_core::{TerminalState, LspState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,6 +34,7 @@ pub fn run() {
             runyard_core::commands::fs_read,
             runyard_core::commands::fs_write,
             runyard_core::commands::fs_watch,
+            runyard_core::commands::fs_create_dir,
             // ── Git (legacy single-command) ──────────────────────────────
             runyard_core::commands::git_branch,
             // ── Git (M2 full operations) ─────────────────────────────────

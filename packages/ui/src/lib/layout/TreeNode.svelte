@@ -47,6 +47,7 @@
   });
 
   async function toggle() {
+    explorerStore.select(node.path, node.kind as "file" | "dir");
     if (node.kind === "dir") {
       const nextExpanded = !expanded;
       explorerStore.toggle(node.path, nextExpanded);
@@ -62,7 +63,7 @@
 <div class="tree-node" style="--depth: {depth}">
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="row" onclick={toggle}>
+  <div class="row" class:selected={explorerStore.selectedPath === node.path} onclick={toggle}>
     <span class="icon">
       {#if node.kind === "dir"}
         {#if expanded}
@@ -81,6 +82,12 @@
     <div class="children">
       {#each children as child (child.path)}
         <TreeNode node={child} {onOpenFile} depth={depth + 1} />
+      {:else}
+        {#if loading}
+          <div class="empty-msg" style="--depth: {depth + 1}">Loading...</div>
+        {:else}
+          <div class="empty-msg" style="--depth: {depth + 1}">Empty folder</div>
+        {/if}
       {/each}
     </div>
   {/if}
@@ -106,6 +113,12 @@
     background-color: var(--bg-secondary);
     color: var(--text);
   }
+  .row.selected {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--text);
+    border-left: 2px solid var(--accent);
+    padding-left: calc(6px + var(--depth) * 16px);
+  }
   .icon {
     margin-right: 8px;
     width: 16px;
@@ -123,5 +136,13 @@
   .children {
     display: flex;
     flex-direction: column;
+  }
+  .empty-msg {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    padding: 3px 8px;
+    padding-left: calc(8px + var(--depth) * 16px);
+    opacity: 0.7;
   }
 </style>
