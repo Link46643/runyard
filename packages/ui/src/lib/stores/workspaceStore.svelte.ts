@@ -1,5 +1,6 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { webSocketClient } from "@runyard/common";
+import { layoutEngine } from "../layout/layoutStore.svelte.js";
 
 async function invoke<T>(cmd: string, args?: any): Promise<T> {
   if (webSocketClient.status === "connected") {
@@ -38,6 +39,7 @@ class WorkspaceStore {
       console.error("[WorkspaceStore] Failed to record workspace open", e);
     }
     await this.loadRecent();
+    layoutEngine.onWorkspaceChanged();
   }
 
   async openViaDialog() {

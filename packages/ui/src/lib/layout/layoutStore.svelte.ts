@@ -614,6 +614,35 @@ class LayoutStore {
       this.save();
     }
   }
+
+  onWorkspaceChanged() {
+    console.log("[LayoutStore] Workspace changed, closing file tabs...");
+    const closeFilesFromNode = (node: LayoutNode) => {
+      if (node.type === "leaf") {
+        const keepTabs = node.tabs.filter(t => t.type !== "editor");
+        node.tabs = keepTabs;
+        if (node.tabs.length === 0) {
+          node.tabs = [{
+            id: "welcome-tab",
+            type: "welcome",
+            title: "Welcome",
+            props: {}
+          }];
+          node.activeTabId = "welcome-tab";
+        } else {
+          if (node.activeTabId && !node.tabs.some(t => t.id === node.activeTabId)) {
+            node.activeTabId = node.tabs[0].id;
+          }
+        }
+      } else if (node.type === "split") {
+        for (const child of node.children) {
+          closeFilesFromNode(child);
+        }
+      }
+    };
+    closeFilesFromNode(this.layout.root);
+    this.save();
+  }
 }
 
 export const layoutEngine = new LayoutStore();

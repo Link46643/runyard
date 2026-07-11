@@ -15,6 +15,13 @@
   let rootNodes = $state<FsEntry[]>([]);
   let childComponents: ReturnType<typeof TreeNode>[] = [];
 
+  let folderName = $derived(
+    (() => {
+      const p = workspacePath.replace(/[/\\]$/, "");
+      return p.split(/[/\\]/).filter(Boolean).pop() || p || "";
+    })()
+  );
+
   async function loadRoot() {
     try {
       let res: FsEntry[];
@@ -33,23 +40,23 @@
     }
   }
 
-  onMount(() => {
+  // Reactively reload files when the workspace path changes
+  $effect(() => {
     loadRoot();
-    
-    // Setup fs:changed listener
-    const unlisten = listen<string>("fs:changed", (e) => {
-      // In a robust implementation, we would recursively find the exact node.
-      // For Milestone 1, we re-fetch the root.
-      // Or we can just call loadRoot() and let components handle updates if needed.
-      loadRoot();
-    });
 
-    // Start watching the workspace root
+    // Start watching the new workspace root
     if (webSocketClient.status === "connected") {
       webSocketClient.invoke("fs_watch", { path: workspacePath }).catch(console.error);
     } else {
       invoke("fs_watch", { path: workspacePath }).catch(console.error);
     }
+  });
+
+  onMount(() => {
+    // Setup fs:changed listener
+    const unlisten = listen<string>("fs:changed", (e) => {
+      loadRoot();
+    });
 
     return () => {
       unlisten.then(f => f());
@@ -58,7 +65,12 @@
 </script>
 
 <div class="explorer-panel">
-  <div class="header">EXPLORER</div>
+  <div class="header">
+    EXPLORER
+    {#if folderName}
+      <span class="folder-name">{folderName}</span>
+    {/if}
+  </div>
   <div class="tree">
     {#each rootNodes as node (node.path)}
       <TreeNode {node} {onOpenFile} />
@@ -77,6 +89,8 @@
     border-right: 1px solid var(--border);
   }
   .header {
+    display: flex;
+    align-items: center;
     font-size: 11px;
     font-weight: 700;
     color: var(--text-secondary);
@@ -85,6 +99,18 @@
     letter-spacing: 1px;
     flex-shrink: 0;
     user-select: none;
+  }
+  .folder-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: none;
+    letter-spacing: 0;
   }
   .tree {
     flex: 1;

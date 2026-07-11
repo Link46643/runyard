@@ -49,10 +49,23 @@
     onDirtyChange(isDirty);
   });
 
+  let pathExpanded = $state(false);
+
+  $effect(() => {
+    // Reset path expansion when active file changes
+    if (filePath) {
+      pathExpanded = false;
+    }
+  });
+
   // Breadcrumb path segments derived from the filePath prop.
   let breadcrumbSegments = $derived(() => {
     if (!filePath) return [];
-    const parts = filePath.replace(/^\//, "").split("/");
+    const cleanPath = filePath.replace(/\\/g, "/").replace(/^\//, "");
+    const parts = cleanPath.split("/");
+    if (!pathExpanded && parts.length > 3) {
+      return [parts[0], "...", parts[parts.length - 2], parts[parts.length - 1]];
+    }
     return parts;
   });
 
@@ -465,10 +478,24 @@
             class="breadcrumb-seg"
             class:breadcrumb-seg--last={i === breadcrumbSegments().length - 1}
             onclick={() => {
+              if (seg === "...") {
+                pathExpanded = true;
+                return;
+              }
               if (i < breadcrumbSegments().length - 1) {
-                // Reconstruct the directory path up to this segment and open
-                // the explorer at that location.
-                const dirPath = "/" + breadcrumbSegments().slice(0, i + 1).join("/");
+                const cleanPath = filePath.replace(/\\/g, "/").replace(/^\//, "");
+                const parts = cleanPath.split("/");
+                let targetParts = parts;
+                if (!pathExpanded && parts.length > 3) {
+                  if (i === 0) {
+                    targetParts = [parts[0]];
+                  } else if (i === 2) {
+                    targetParts = parts.slice(0, parts.length - 1);
+                  }
+                } else {
+                  targetParts = parts.slice(0, i + 1);
+                }
+                const dirPath = "/" + targetParts.join("/");
                 layoutEngine.openExplorer?.(dirPath);
               }
             }}
