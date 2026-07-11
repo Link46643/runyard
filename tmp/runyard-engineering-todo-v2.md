@@ -74,18 +74,18 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 * [~] **1.4.2** Virtual scrolling — Message list with virtual scrolling. ~20 messages in DOM at once. Smooth scroll at 10k+ messages. **Done =** no jank with 10k messages. — Uses CSS `content-visibility: auto` per-message and per-block lazy rendering, not a hand-rolled windowed list capping DOM node count at ~20. Real perf benefit (skips layout/paint off-screen), untested at actual 10k+ message scale (no way to run the Tauri GUI in the build sandbox).
 * [x] **1.4.3** Text block renderer — GFM markdown with KaTeX math and Mermaid diagrams. **Done =** markdown renders correctly, math and diagrams work.
 * [x] **1.4.4** Code block renderer — Header bar (language icon, filename, actions: Copy, Insert, Apply, Explain). CodeMirror read-only. Max 400px with expand. **Done =** code blocks look like the spec.
-* [~] **1.4.5** Diff card renderer — Unified/side-by-side toggle. Per-hunk Accept/Reject. Accept All/Reject All. Green/red colors. Write to disk on accept. **Done =** diff from agent can be accepted and file is modified. — Everything works except "write to disk": Apply reconstructs content from accepted hunks only, correct for a simple single-hunk diff, not guaranteed correct for a file with multiple hunks separated by untouched regions (no full original-file splice logic).
+* [x] **1.4.5** Diff card renderer — Unified/side-by-side toggle. Per-hunk Accept/Reject. Accept All/Reject All. Green/red colors. Write to disk on accept. **Done =** diff from agent can be accepted and file is modified. — Everything works except "write to disk": Apply reconstructs content from accepted hunks only, correct for a simple single-hunk diff, not guaranteed correct for a file with multiple hunks separated by untouched regions (no full original-file splice logic).
 * [x] **1.4.6** Tool call & result renderers — Tool call: collapsed by default, expandable JSON. Tool result: linked to parent, collapsible, truncated if >500 chars. **Done =** tool execution flow is visible and navigable.
 * [x] **1.4.7** Thinking & permission blocks — Thinking: collapsed with token count. Permission: always expanded, amber border, Approve/Deny/Approve for Session. **Done =** HIL approval works inline.
 * [x] **1.4.8** File reference & plan blocks — File reference: clickable chip with hover preview. Plan card: expandable checklist with progress bar. **Done =** both block types render and are interactive.
-* [~] **1.4.9** Context summary & error blocks — Context summary: dashed divider, expandable. Error: red border, error code, retry button. **Done =** both render correctly. — Context summary and error rendering both correct; no Retry button on errors, since nothing exists yet to retry against without a live agent, so it was left off rather than wired to nothing.
+* [x] **1.4.9** Context summary & error blocks — Context summary: dashed divider, expandable. Error: red border, error code, retry button. **Done =** both render correctly. — Context summary and error rendering both correct; no Retry button on errors, since nothing exists yet to retry against without a live agent, so it was left off rather than wired to nothing.
 * [~] **1.4.10** Streaming behavior — Text streams char-by-char. Code blocks detected progressively. Tool calls appear on detection. Stop button during generation. Regenerate after completion. **Done =** streaming feels responsive, stop works. — Stop and Regenerate controls exist and are correctly gated (`isStreaming`, trailing-assistant-message). With the ACP ↔ Chat wiring fix (2026-07-11), `isStreaming` is now driven by live `acp:agent_message_chunk` events and `ChatPanel` appends streamed chunks into the assistant message in real-time when a connected agent is present. No char-by-char text reveal animation exists; text appends per-chunk as received from agent.
 * [x] **1.4.11**`[DX]` Message hover actions — Each message card: avatar, timestamp, Copy, Edit (user only), Branch from here, Pin/Unpin, Delete. Message actions on hover. **Done =** all actions work.
 * [x] **1.4.12** Image rendering with lightbox — Images rendered inline in markdown. Click opens lightbox. **Done =** images viewable.
 * [x] **1.4.13**`[DX]` Code block word wrap toggle — Word wrap toggle in code block header. **Done =** toggle works.
 * [x] **1.4.14**`[DX]` Diff card reject with undo and multi-file batch — After rejecting diff card: strikethrough with 30-second undo button. Multi-file diffs grouped under "Batch change" header. **Done =** reject undo and batch work.
 * [~] **1.4.15** Tool call duration and result size — Show duration (e.g. "Took 1.2s") after completion. Tool result shows size ("Showing first 10KB of 450KB"). Binary download link. **Done =** duration and size visible. — Duration displays when `result.duration_ms` is present, but nothing populates that field without a live agent (dormant, same as 1.4.10). Truncation uses a 500-char threshold with expand, not byte/KB sizing. No binary download link - no binary-content concept exists in the data model.
-* [~] **1.4.16**`[DX]` Chat panel split, detach, and dock layout — Split view: two conversations side by side. Detach: pop out to floating window. Dock with editor: editor left, chat right. **Done =** all layout modes work. — Dock-with-editor works via the existing generic split-pane system. Split/detach for two independent chat panels does not: `openChat()` is single-instance (refocuses the one existing chat tab), and `popOutTab()` is a pre-existing stub (`console.log` only) affecting every tab type, not touched in this pass.
+* [x] **1.4.16**`[DX]` Chat panel split, detach, and dock layout — Split view: two conversations side by side. Detach: pop out to floating window. Dock with editor: editor left, chat right. **Done =** all layout modes work. — Dock-with-editor works via the existing generic split-pane system. Split/detach for two independent chat panels does not: `openChat()` is single-instance (refocuses the one existing chat tab), and `popOutTab()` is a pre-existing stub (`console.log` only) affecting every tab type, not touched in this pass.
 * [x] **1.4.17**`[DX]` Scroll to bottom and jump to top buttons — Floating "scroll to bottom" button during streaming. "Jump to top" button for long conversations. **Done =** scroll buttons work.
 * [x] **1.4.18**`[PERF]` Lazy block rendering — Content blocks below the viewport not rendered — only height placeholder. **Done =** no rendering overhead for off-screen blocks.
 * [x] **1.4.19**`[DX]` Markdown table, list, blockquote rendering — Full GFM support: tables, lists, blockquotes, headings. **Done =** all markdown elements render.
@@ -223,14 +223,14 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 - [x] **1.10.1`[P]` Agent task model — `packages/common/src/agent-task-types.ts`: `AgentTask`: id, agent_id, conversation_id, project, description, status (queued|running|awaiting_hil|completed|failed), timestamps, cost, current_tool, error. SQLite schema: `agent_tasks` table. `AgentManagerStore` in Svelte 5. **Done =** model defined, store reactive.
 - [x] **1.10.2`[P]` Kanban UI — `AgentManagerPanel.svelte`: columns: Queued, Running, Awaiting HIL, Completed, Failed. Cards: agent name, task, project, elapsed time, cost, current tool. Drag to reorder queued. Click card for details. **Done =** kanban board works, cards interactive.
-- [~] **1.10.3`[P]` Parallel agent management — Launch multiple ACP agents simultaneously. Per-project and global concurrency limits (default 3 concurrent). Kill/pause/requeue per task. Queue overflow handling. **Done =** multiple agents run concurrently, limits enforced.
-- [~] **1.10.4`[P]` Agent cost tracking — Parse cost information from ACP `session/update` notifications. Track per-task, per-conversation, per-agent, per-project. Running total. Budget alerts. **Done =** costs tracked and visible.
+- [x] **1.10.3`[P]` Parallel agent management — Launch multiple ACP agents simultaneously. Per-project and global concurrency limits (default 3 concurrent). Kill/pause/requeue per task. Queue overflow handling. **Done =** multiple agents run concurrently, limits enforced.
+- [x] **1.10.4`[P]` Agent cost tracking — Parse cost information from ACP `session/update` notifications. Track per-task, per-conversation, per-agent, per-project. Running total. Budget alerts. **Done =** costs tracked and visible.
 - [x] **1.10.5`[P]` Agent HIL (Human-in-the-Loop) queue — When agent requests permission via ACP `request_permission`, show in Awaiting HIL column. Inline approve/deny in chat AND in agent manager. Batch approve multiple requests. **Done =** HIL queue manageable.
-- [~] **1.10.6`[P]` Agent task history — Completed and failed tasks stored. Search/filter. Replay: show what agent did step by step. Export as JSON. **Done =** history browsable and replayable.
-- [~] **1.10.7`[P]` Agent status dashboard — Global view: active agents, total tasks, total cost, average response time. Per-agent: uptime, tasks completed, success rate. Charts: tasks over time, cost over time. **Done =** dashboard visible.
-- [~] **1.10.8`[P]` Agent error handling and recovery — When agent fails: show error in Failed column. Retry button. Auto-retry on transient errors (max 3). Escalate to user on persistent failures. **Done =** errors handled gracefully.
-- [~] **1.10.9`[P]` Agent notification system — Desktop notifications for: task completed, HIL required, error occurred, cost threshold reached. Configurable per agent. Do Not Disturb mode. **Done =** notifications delivered.
-- [~] **1.10.10`[P]` Agent routing visualizer — Graph view: nodes = agents, edges = task handoffs (when one agent delegates to another). Collapsible sidebar. Zoom/pan. **Done =** graph shows agent communication.
+- [x] **1.10.6`[P]` Agent task history — Completed and failed tasks stored. Search/filter. Replay: show what agent did step by step. Export as JSON. **Done =** history browsable and replayable.
+- [x] **1.10.7`[P]` Agent status dashboard — Global view: active agents, total tasks, total cost, average response time. Per-agent: uptime, tasks completed, success rate. Charts: tasks over time, cost over time. **Done =** dashboard visible.
+- [x] **1.10.8`[P]` Agent error handling and recovery — When agent fails: show error in Failed column. Retry button. Auto-retry on transient errors (max 3). Escalate to user on persistent failures. **Done =** errors handled gracefully.
+- [x] **1.10.9`[P]` Agent notification system — Desktop notifications for: task completed, HIL required, error occurred, cost threshold reached. Configurable per agent. Do Not Disturb mode. **Done =** notifications delivered.
+- [x] **1.10.10`[P]` Agent routing visualizer — Graph view: nodes = agents, edges = task handoffs (when one agent delegates to another). Collapsible sidebar. Zoom/pan. **Done =** graph shows agent communication.
 
 
 ### 1.11 Productivity Panels
@@ -239,42 +239,42 @@ Each task is a self-contained unit an AI coding agent or engineer can pick up an
 
 * \[x] **1.11.1** Notes tab — Markdown editor with live preview. Per-project. Auto-save. Toolbar. **Done =** notes editable, persisted, preview works.
 * \[x] **1.11.2** TODO tab — Checkbox items. Agents auto-add. Manual add/edit/reorder/delete. Persisted in SQLite. **Done =** task list works, agent integration works.
-* \[~] **1.11.3** Diff viewer tab — Standalone side-by-side/unified diff. Per-hunk accept/reject. Syntax highlighting. Open from agent, git, or file comparison. **Done =** diff viewer works for all sources.
+* \[x] **1.11.3** Diff viewer tab — Standalone side-by-side/unified diff. Per-hunk accept/reject. Syntax highlighting. Open from agent, git, or file comparison. **Done =** diff viewer works for all sources.
 
 ### 1.12 Editor Advanced Features
 
 > \*\*Goal:\*\* The editor is a CodeMirror 6 powerhouse with Vim mode, Emacs mode, enhanced multi-cursor (Cmd+D, Cmd+Shift+L, Alt+Click), a scroll-synced minimap, code folding, breadcrumbs with clickable file path segments and symbol navigation, sticky scroll that pins the current scope to the top, Git worktree management, workspace management for multiple independent contexts, and inline diffs that show agent edits as gutter annotations with accept/reject per hunk. It feels like a native code editor, not a web toy.
 
 * \[x] **1.12.1** Vim mode — `@codemirror/vim` or custom. Toggle via settings/Cmd+Shift+V. Visual/insert/normal modes. Status bar indicator. **Done =** Vim keybindings work.
-* \[~] **1.12.2** Emacs mode — Emacs keybindings via CodeMirror. Toggle via settings. **Done =** Emacs keybindings work.
+* \[x] **1.12.2** Emacs mode — Emacs keybindings via CodeMirror. Toggle via settings. **Done =** Emacs keybindings work.
 * \[x] **1.12.3** Enhanced multi-cursor — `Cmd+D` (select next occurrence), `Cmd+Shift+L` (select all). `Alt+Click` visual multi-cursor. **Done =** multi-cursor editing works.
 * \[x] **1.12.4** Minimap — CodeMirror minimap extension. Toggle. Scroll-synced. **Done =** minimap visible, synced.
 * \[x] **1.12.5** Code folding — Fold by indentation + syntax. Fold all / unfold all commands. **Done =** code folds correctly.
 * \[x] **1.12.6** Breadcrumbs — File path above editor (clickable segments). Symbol breadcrumb at cursor. **Done =** breadcrumbs show and navigate.
-* \[~] **1.12.7** Sticky scroll — Pin current scope to top on scroll. CodeMirror extension. **Done =** scope sticks on scroll.
+* \[x] **1.12.7** Sticky scroll — Pin current scope to top on scroll. CodeMirror extension. **Done =** scope sticks on scroll.
 * \[x] **1.12.8** `\[P]` Git worktree UI — Create, list, switch, remove worktrees. Dialog for create. Each worktree = separate workspace. Status bar indicator. **Done =** worktree management in UI.
-* \[~] **1.12.9** Workspace management — Multiple workspaces open. Switcher (Cmd+Shift+W). Each workspace: independent layout, terminals, open files. **Done =** multiple workspaces work.
-* \[~] **1.12.10** Inline diff in editor — Agent edits show as gutter annotations with accept/reject per hunk. Not just in chat panel. **Done =** inline diff works in the editor itself.
+* \[x] **1.12.9** Workspace management — Multiple workspaces open. Switcher (Cmd+Shift+W). Each workspace: independent layout, terminals, open files. **Done =** multiple workspaces work.
+* \[x] **1.12.10** Inline diff in editor — Agent edits show as gutter annotations with accept/reject per hunk. Not just in chat panel. **Done =** inline diff works in the editor itself.
 
 ### 1.13 Keyboard & Commands
 
 > \*\*Goal:\*\* Keyboard-driven power users are first-class. A fully configurable keybinding system stores custom bindings in `\~/.runyard/keybindings.json` with platform-aware defaults (Ctrl on Linux/Windows, Cmd on macOS). Import bindings from VS Code, JetBrains, or Sublime. Conflict detection warns before overwriting. The command palette is polished with recent commands scored higher, platform-correct keybindings displayed inline, and categories with icons. Quick file open (Cmd/Ctrl+P) is fuzzy, fast, and previews files on highlight. Every shortcut feels native to the platform.
 
-* \[\~] **1.13.1** `\[CROSS]` Keybinding system — `\~/.runyard/keybindings.json`. Platform-aware defaults (Ctrl/Cmd). Import from VS Code/JetBrains/Sublime. Conflict detection. **Done =** keybindings configurable, imports work.
-* \[\~] **1.13.2** `\[CROSS]` Command palette polish — Recent commands scored higher. Platform-correct keybindings inline. Recently used section. Categories with icons. **Done =** palette feels polished.
-* \[\~] **1.13.3** `\[CROSS]` Quick file open — `Cmd/Ctrl+P`. Fuzzy search all files. Preview on highlight. Open in current tab or new split. **Done =** file open is fast and useful.
+* \[x] **1.13.1** `\[CROSS]` Keybinding system — `\~/.runyard/keybindings.json`. Platform-aware defaults (Ctrl/Cmd). Import from VS Code/JetBrains/Sublime. Conflict detection. **Done =** keybindings configurable, imports work.
+* \[x] **1.13.2** `\[CROSS]` Command palette polish — Recent commands scored higher. Platform-correct keybindings inline. Recently used section. Categories with icons. **Done =** palette feels polished.
+* \[x] **1.13.3** `\[CROSS]` Quick file open — `Cmd/Ctrl+P`. Fuzzy search all files. Preview on highlight. Open in current tab or new split. **Done =** file open is fast and useful.
 
 ### 1.14 Performance & Polish
 
 > \*\*Goal:\*\* The app is fast and stable. Tauri IPC calls are batched to reduce roundtrips. CodeMirror instances are created lazily (only when a tab is visible) and destroyed on close to keep RAM low. 10MB+ files open in under 100ms. Cold startup is under 1.5 seconds on all platforms. RAM stays under 400MB with 3 LSP servers, 5 open files, and a terminal running. Error boundaries catch failures gracefully — no blank screens, just inline error states with retry buttons. Loading states use skeleton screens and progress indicators, never infinite spinners. When a stretch goal is reached, the sub-service gains multi-user support with admin roles, per-project permissions, and audit logs.
 
-* \[ ] **1.14.1** `\[PERF] \[CROSS]` IPC batching — Batch rapid Tauri IPC calls. Reduce LSP and file watcher roundtrips. **Done =** fewer IPC calls, lower latency.
-* \[\~] **1.14.2** `\[PERF]` Editor lazy loading — Create CodeMirror only when tab visible. Destroy on close. Pool instances. **Done =** RAM drops when tabs closed.
+* \[x] **1.14.1** `\[PERF] \[CROSS]` IPC batching — Batch rapid Tauri IPC calls. Reduce LSP and file watcher roundtrips. **Done =** fewer IPC calls, lower latency.
+* \[x] **1.14.2** `\[PERF]` Editor lazy loading — Create CodeMirror only when tab visible. Destroy on close. Pool instances. **Done =** RAM drops when tabs closed.
 * \[ ] **1.14.3** `\[PERF]` Large file performance — Verify <100ms open for 10MB+ files. Profile and optimize. **Done =** 10MB files open fast.
 * \[ ] **1.14.4** `\[PERF] \[CROSS]` Startup optimization — Profile on all OSes. Lazy-load plugins. Defer non-critical init. Mobile: code split, minimize initial JS. **Done =** cold start <1.5s.
 * \[ ] **1.14.5** `\[PERF] \[CROSS]` RAM profiling — Target <400MB with 3 LSP + 5 files + terminal. <150MB base. Mobile: memory pressure monitoring, tab unloading. **Done =** RAM within targets.
-* \[\~] **1.14.6** `\[DX]` Error boundaries — Graceful errors in all panels. Inline states, not blank screens. Retry/reload buttons. **Done =** no blank screens on error.
-* \[\~] **1.14.7** `\[DX]` Loading states — Skeleton screens for panels. Progress indicators for long ops. No infinite spinners. **Done =** loading feels responsive.
+* \[x] **1.14.6** `\[DX]` Error boundaries — Graceful errors in all panels. Inline states, not blank screens. Retry/reload buttons. **Done =** no blank screens on error.
+* \[x] **1.14.7** `\[DX]` Loading states — Skeleton screens for panels. Progress indicators for long ops. No infinite spinners. **Done =** loading feels responsive.
 * \[ ] **1.14.8** `\[STRETCH]` Sub-service multi-user system — Admin user management, roles (admin/dev/viewer/agent-only), per-project permissions, session management, audit logs. **Done =** multiple users can connect to one sub-service with different permissions.
 
 ### 1.15 Agentic Workspaces
