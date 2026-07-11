@@ -1,6 +1,7 @@
 import type { Layout, LayoutNode, LeafNode, SplitNode, Tab, TerminalSessionInfo } from "@runyard/common";
 import { appStatus } from "./appStatusStore.svelte.js";
 import { settingsStore } from "./settingsStore.svelte.js";
+import { workspaceStore } from "../stores/workspaceStore.svelte.js";
 import { invoke } from "@tauri-apps/api/core";
 
 const DEFAULT_LAYOUT: Layout = {
@@ -372,11 +373,11 @@ class LayoutStore {
 
   /** Open a new terminal tab. Invokes terminal_create on the Rust backend. */
   async openTerminal(cwd?: string) {
-    // Forward the user's configured default shell (null = use OS $SHELL/$COMSPEC)
+    const targetCwd = cwd || workspaceStore.currentPath || null;
     const shell = settingsStore.settings.terminal.default_shell || null;
     let info: TerminalSessionInfo;
     try {
-      info = await invoke<TerminalSessionInfo>("terminal_create", { cwd: cwd ?? null, shell });
+      info = await invoke<TerminalSessionInfo>("terminal_create", { cwd: targetCwd, shell });
     } catch (e) {
       console.error("[layoutStore] Failed to create terminal", e);
       return;
