@@ -41,7 +41,7 @@ pub fn init_acp_bridge<R: Runtime>(app: &AppHandle<R>) -> AcpBridgeState {
     let pool = Arc::new(AcpConnectionPool::new(MAX_CONCURRENT_CONNECTIONS, event_tx));
 
     let bridge: Arc<dyn EventBridge> = Arc::new(app.clone());
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         while let Some(event) = event_rx.recv().await {
             // Best-effort persistence of connection status/capabilities so
             // the agent panel's status badge (1.6.6) and capabilities
