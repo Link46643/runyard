@@ -66,13 +66,32 @@
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
-  const modelOptions = [
-    "claude-sonnet-4-5",
-    "claude-opus-4",
-    "gpt-4o",
-    "gemini-2.5-pro",
-    "custom...",
-  ] as const;
+  const modelOptions = $derived.by(() => {
+    if (!chatInputStore.activeSessionId) return ["custom..."];
+    const opts = acpStore.sessionConfigOptions[chatInputStore.activeSessionId];
+    if (!Array.isArray(opts)) return ["custom..."];
+    
+    for (const opt of opts) {
+      if (!opt || typeof opt !== "object") continue;
+      const category = (opt as any).category ?? "";
+      if (
+        typeof category === "string" &&
+        category.toLowerCase().includes("model")
+      ) {
+        const choices = (opt as any).options ?? (opt as any).choices ?? (opt as any).values ?? [];
+        if (Array.isArray(choices) && choices.length > 0) {
+          const mapped = choices.map((c: any) => {
+            if (typeof c === "string") return c;
+            return (c as any).value ?? (c as any).id ?? (c as any).label ?? String(c);
+          }).filter(Boolean);
+          if (mapped.length > 0) {
+            return [...mapped, "custom..."];
+          }
+        }
+      }
+    }
+    return ["custom..."];
+  });
 
   // Rough token estimate: total chars in all messages / 4 (no real tokenizer)
   const estimatedTokens = $derived.by(() => {
